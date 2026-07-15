@@ -1,0 +1,89 @@
+<UserControl
+    x:Class="LanBeam.App.Views.TransfersView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="12,8,12,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{DynamicResource Str_TransfersTitle}" FontSize="26" FontWeight="SemiBold" />
+            <ui:Button Grid.Column="1" x:Name="ClearAllButton" VerticalAlignment="Center"
+                       Content="{DynamicResource Str_ClearFinished}" Appearance="Secondary"
+                       Icon="{ui:SymbolIcon Broom24}" Click="ClearFinished_Click" />
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="4">
+            <Grid>
+                <TextBlock x:Name="EmptyState" Margin="0,60,0,0" HorizontalAlignment="Center"
+                           FontSize="15" Opacity="0.6"
+                           Text="{DynamicResource Str_NoTransfers}" />
+
+                <ItemsControl ItemsSource="{Binding Transfers}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="8,6" Padding="16" CornerRadius="10"
+                                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0" Text="{Binding DirectionArrow}" FontSize="26"
+                                               FontWeight="Bold" Margin="0,0,16,0" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+
+                                    <StackPanel Grid.Column="1">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" />
+                                            <TextBlock Text="{Binding PeerText}" Margin="12,0,0,0"
+                                                       Opacity="0.6" FontSize="13" VerticalAlignment="Bottom" />
+                                        </StackPanel>
+
+                                        <ProgressBar Margin="0,8,0,0" Height="6"
+                                                     Minimum="0" Maximum="100"
+                                                     Value="{Binding ProgressPercent, Mode=OneWay}" />
+
+                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                            <TextBlock Text="{Binding StateText}" FontSize="12" Opacity="0.85" />
+                                            <TextBlock Text="{Binding BytesText}" FontSize="12" Opacity="0.6"
+                                                       Margin="14,0,0,0" />
+                                            <TextBlock Text="{Binding SpeedText}" FontSize="12" Margin="14,0,0,0"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                                            <TextBlock Text="{Binding EtaText}" FontSize="12" Opacity="0.6"
+                                                       Margin="14,0,0,0" />
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ui:Button Content="{DynamicResource Str_Cancel}" Appearance="Secondary"
+                                                   Icon="{ui:SymbolIcon Dismiss24}"
+                                                   Command="{Binding CancelCommand}"
+                                                   Visibility="{Binding IsActive, Converter={StaticResource BoolToVis}}" />
+                                        <ui:Button ToolTip="{DynamicResource Str_RemoveFromList}" Appearance="Transparent"
+                                                   Icon="{ui:SymbolIcon Delete24}" Margin="6,0,0,0"
+                                                   Click="RemoveItem_Click"
+                                                   Visibility="{Binding IsActive, Converter={StaticResource InverseBoolToVis}}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

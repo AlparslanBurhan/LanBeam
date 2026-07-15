@@ -1,0 +1,151 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Navigation -->
+    <s:String x:Key="Str_NavDevices">Devices</s:String>
+    <s:String x:Key="Str_NavTransfers">Transfers</s:String>
+    <s:String x:Key="Str_NavSettings">Settings</s:String>
+
+    <!-- Devices -->
+    <s:String x:Key="Str_DevicesTitle">Devices</s:String>
+    <s:String x:Key="Str_ThisDeviceFormat">This device: «{0}» — visible on the network</s:String>
+    <s:String x:Key="Str_SearchingDevices">Looking for other devices running LanBeam…</s:String>
+    <s:String x:Key="Str_SearchingDevicesHint">Open LanBeam on the other computer too. Both must be on the same network (same router/switch).</s:String>
+    <s:String x:Key="Str_Paired">Paired</s:String>
+    <s:String x:Key="Str_DragHint">You can drag and drop files onto this card</s:String>
+    <s:String x:Key="Str_SendFiles">Send Files</s:String>
+    <s:String x:Key="Str_Folder">Folder</s:String>
+
+    <!-- Transfers -->
+    <s:String x:Key="Str_TransfersTitle">Transfers</s:String>
+    <s:String x:Key="Str_ClearFinished">Clear finished</s:String>
+    <s:String x:Key="Str_NoTransfers">No transfers yet. Send files from the Devices tab.</s:String>
+    <s:String x:Key="Str_Cancel">Cancel</s:String>
+    <s:String x:Key="Str_RemoveFromList">Remove from list</s:String>
+    <s:String x:Key="Str_ReceiverFormat">To: {0}</s:String>
+    <s:String x:Key="Str_SenderFormat">From: {0}</s:String>
+    <s:String x:Key="Str_RemainingFormat">Remaining: {0}</s:String>
+
+    <!-- Transfer states -->
+    <s:String x:Key="Str_StateConnecting">Connecting…</s:String>
+    <s:String x:Key="Str_StatePairing">Waiting for pairing…</s:String>
+    <s:String x:Key="Str_StateWaitingApproval">Waiting for the other side to approve…</s:String>
+    <s:String x:Key="Str_StateTransferring">Transferring</s:String>
+    <s:String x:Key="Str_StateVerifying">Verifying…</s:String>
+    <s:String x:Key="Str_StateCompleted">Completed ✓</s:String>
+    <s:String x:Key="Str_StateRejected">Rejected</s:String>
+    <s:String x:Key="Str_StateCancelled">Cancelled</s:String>
+    <s:String x:Key="Str_StateFailedFormat">Error: {0}</s:String>
+    <s:String x:Key="Str_Unknown">unknown</s:String>
+
+    <!-- Settings -->
+    <s:String x:Key="Str_SettingsTitle">Settings</s:String>
+    <s:String x:Key="Str_Device">Device</s:String>
+    <s:String x:Key="Str_DeviceNameLabel">Device name (shown to other devices)</s:String>
+    <s:String x:Key="Str_Language">Dil / Language</s:String>
+    <s:String x:Key="Str_Avatar">Avatar</s:String>
+    <s:String x:Key="Str_PickPhoto">Choose photo…</s:String>
+    <s:String x:Key="Str_AvatarHint">This is how you appear to other devices.</s:String>
+    <s:String x:Key="Str_Presets">Built-in avatars:</s:String>
+    <s:String x:Key="Str_FileReceiving">Receiving Files</s:String>
+    <s:String x:Key="Str_DownloadFolder">Default download folder</s:String>
+    <s:String x:Key="Str_Change">Change</s:String>
+    <s:String x:Key="Str_AlwaysAsk">Ask where to save on every transfer</s:String>
+    <s:String x:Key="Str_Performance">Performance</s:String>
+    <s:String x:Key="Str_StreamCountLabel">Parallel data streams:</s:String>
+    <s:String x:Key="Str_StreamCountHint">4 is ideal on wired gigabit. Try increasing on Wi-Fi or 2.5G+ networks.</s:String>
+    <s:String x:Key="Str_PortLabel">Listening port (TCP):</s:String>
+    <s:String x:Key="Str_PortHint">Port changes take effect after restart. Must match on both devices.</s:String>
+    <s:String x:Key="Str_System">System</s:String>
+    <s:String x:Key="Str_AutoStart">Start with Windows (hidden in tray)</s:String>
+    <s:String x:Key="Str_MinimizeToTray">Keep running in the tray when the window is closed</s:String>
+    <s:String x:Key="Str_Install">Install to a fixed location + desktop shortcut</s:String>
+    <s:String x:Key="Str_InstallHint">Copies the app under %LOCALAPPDATA%\LanBeam and creates a desktop shortcut, so you never need to move the exe and the right-click menu keeps working.</s:String>
+    <s:String x:Key="Str_AddContextMenu">Add to right-click menu</s:String>
+    <s:String x:Key="Str_RemoveContextMenu">Remove from right-click menu</s:String>
+    <s:String x:Key="Str_RepairFirewall">Repair firewall rule</s:String>
+    <s:String x:Key="Str_ContextMenuHint">Right-click menu: right-click a file/folder, then under «Show more options» choose «Send with LanBeam».</s:String>
+    <s:String x:Key="Str_PairedDevices">Paired Devices</s:String>
+    <s:String x:Key="Str_NoPaired">No paired devices yet. The first transfer pairs via a PIN.</s:String>
+    <s:String x:Key="Str_Remove">Remove</s:String>
+    <s:String x:Key="Str_About">About</s:String>
+    <s:String x:Key="Str_AboutFormat">LanBeam {0} — fast, encrypted file transfer over the LAN.
+Data folder: {1}</s:String>
+    <s:String x:Key="Str_FingerprintFormat">Device identity (SHA-256): {0}</s:String>
+
+    <!-- Incoming offer -->
+    <s:String x:Key="Str_IncomingTransfer">Incoming Transfer</s:String>
+    <s:String x:Key="Str_IncomingTitle">Incoming file request</s:String>
+    <s:String x:Key="Str_WantsToSendFormat">«{0}» wants to send you files:</s:String>
+    <s:String x:Key="Str_OfferDetailFormat">{0} • {1} files</s:String>
+    <s:String x:Key="Str_WillAskFolder">If you accept, you'll be asked where to save.</s:String>
+    <s:String x:Key="Str_SaveToFormat">Will be saved to: {0}</s:String>
+    <s:String x:Key="Str_Reject">Reject</s:String>
+    <s:String x:Key="Str_Accept">Accept</s:String>
+    <s:String x:Key="Str_ChooseSaveFolder">Where should the files be saved?</s:String>
+    <s:String x:Key="Str_FolderCreateFailedFormat">Could not create folder: {0}</s:String>
+
+    <!-- Pairing (receiver shows PIN) -->
+    <s:String x:Key="Str_PairingTitle">Device pairing</s:String>
+    <s:String x:Key="Str_PairingInfoFormat">«{0}» wants to pair with this device. Enter the code below only on that device. Be careful if someone else can see your screen.</s:String>
+    <s:String x:Key="Str_FingerprintChangedWarning">⚠ WARNING: A device with this name previously paired with a different identity. This is normal if the device was reinstalled; otherwise someone may be impersonating it. If unsure, cancel pairing.</s:String>
+    <s:String x:Key="Str_WaitingForCode">Waiting for the other side to enter the code…</s:String>
+    <s:String x:Key="Str_PairingSuccess">Pairing successful ✓</s:String>
+    <s:String x:Key="Str_PairingFailure">Pairing failed ✗</s:String>
+
+    <!-- PIN entry (sender enters code) -->
+    <s:String x:Key="Str_PinEntryTitle">Pairing code</s:String>
+    <s:String x:Key="Str_EnterPinFormat">Enter the 6-digit code shown on «{0}».</s:String>
+    <s:String x:Key="Str_AttemptsLeftFormat">Attempts left: {0}</s:String>
+    <s:String x:Key="Str_Dismiss">Cancel</s:String>
+    <s:String x:Key="Str_Pair">Pair</s:String>
+
+    <!-- Send target picker -->
+    <s:String x:Key="Str_SendToWho">Send to whom?</s:String>
+    <s:String x:Key="Str_ToSendFormat">To send: {0}</s:String>
+    <s:String x:Key="Str_SendPickerHint">LanBeam must be open on the other computer and both on the same network.</s:String>
+    <s:String x:Key="Str_Send">Send</s:String>
+
+    <!-- Tray + general -->
+    <s:String x:Key="Str_TrayTooltip">LanBeam — LAN file transfer</s:String>
+    <s:String x:Key="Str_OpenLanBeam">Open LanBeam</s:String>
+    <s:String x:Key="Str_Exit">Exit</s:String>
+    <s:String x:Key="Str_UnexpectedErrorFormat">Unexpected error: {0}</s:String>
+
+    <!-- Firewall -->
+    <s:String x:Key="Str_FirewallTitle">LanBeam — Firewall</s:String>
+    <s:String x:Key="Str_FirewallPrompt">LanBeam needs a Windows Firewall exception to receive files from the network.
+
+Add the rule now? (Administrator approval will be requested)</s:String>
+    <s:String x:Key="Str_FirewallAdded">Firewall rule added.</s:String>
+    <s:String x:Key="Str_FirewallFailed">Could not add the rule (administrator approval may have been denied).</s:String>
+
+    <!-- Install / messages -->
+    <s:String x:Key="Str_InstallTitle">LanBeam — Setup</s:String>
+    <s:String x:Key="Str_InstalledFormat">Installed:
+{0}
+
+Desktop shortcut created.</s:String>
+    <s:String x:Key="Str_ContextMenuRedirected">The right-click menu now points to this location.</s:String>
+    <s:String x:Key="Str_DeleteTempCopy">From now on, open it from the desktop shortcut (or the right-click menu); you can delete this temporary copy.</s:String>
+    <s:String x:Key="Str_InstallFailedFormat">Install failed: {0}</s:String>
+    <s:String x:Key="Str_AutoStartFailedFormat">Could not configure auto-start: {0}</s:String>
+    <s:String x:Key="Str_ContextMenuFailedFormat">Could not configure the right-click menu: {0}</s:String>
+    <s:String x:Key="Str_ChooseDownloadFolder">Choose the default download folder</s:String>
+    <s:String x:Key="Str_PickFilesTitleFormat">Choose files to send to {0}</s:String>
+    <s:String x:Key="Str_PickFolderTitleFormat">Choose a folder to send to {0}</s:String>
+    <s:String x:Key="Str_PickAvatar">Choose an avatar photo</s:String>
+    <s:String x:Key="Str_ImageFilter">Images|*.png;*.jpg;*.jpeg;*.bmp</s:String>
+    <s:String x:Key="Str_PhotoFailedFormat">Could not use the photo: {0}</s:String>
+    <s:String x:Key="Str_UseThisAvatar">Use this avatar</s:String>
+
+    <!-- Units/format -->
+    <s:String x:Key="Str_SpeedFormat">{0} MB/s</s:String>
+    <s:String x:Key="Str_Sec">s</s:String>
+    <s:String x:Key="Str_Min">m</s:String>
+    <s:String x:Key="Str_Hour">h</s:String>
+    <s:String x:Key="Str_FilesUnit">files</s:String>
+
+</ResourceDictionary>

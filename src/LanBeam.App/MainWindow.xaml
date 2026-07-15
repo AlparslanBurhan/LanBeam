@@ -1,0 +1,66 @@
+<ui:FluentWindow
+    x:Class="LanBeam.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:views="clr-namespace:LanBeam.App.Views"
+    Title="LanBeam"
+    Width="980" Height="640"
+    MinWidth="760" MinHeight="480"
+    ExtendsContentIntoTitleBar="True"
+    WindowBackdropType="Mica"
+    WindowCornerPreference="Round"
+    WindowStartupLocation="CenterScreen">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="LanBeam" Icon="pack://application:,,,/Assets/lanbeam.ico" />
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <ListBox x:Name="NavList" Grid.Column="0" Margin="8,4,4,8"
+                     Background="Transparent" BorderThickness="0"
+                     SelectionChanged="NavList_SelectionChanged">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                        <Setter Property="Padding" Value="12,10" />
+                        <Setter Property="Margin" Value="0,2" />
+                    </Style>
+                </ListBox.ItemContainerStyle>
+
+                <ListBoxItem IsSelected="True">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Desktop24" FontSize="18" />
+                        <TextBlock Text="{DynamicResource Str_NavDevices}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
+                <ListBoxItem>
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="ArrowSwap24" FontSize="18" />
+                        <TextBlock Text="{DynamicResource Str_NavTransfers}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
+                <ListBoxItem>
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Settings24" FontSize="18" />
+                        <TextBlock Text="{DynamicResource Str_NavSettings}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
+            </ListBox>
+
+            <Grid Grid.Column="1" Margin="4,4,12,12">
+                <views:DevicesView x:Name="DevicesSection" />
+                <views:TransfersView x:Name="TransfersSection" Visibility="Collapsed" />
+                <views:SettingsView x:Name="SettingsSection" Visibility="Collapsed" />
+            </Grid>
+        </Grid>
+    </Grid>
+</ui:FluentWindow>

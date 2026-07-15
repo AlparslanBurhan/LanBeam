@@ -1,0 +1,151 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Navigasyon -->
+    <s:String x:Key="Str_NavDevices">Cihazlar</s:String>
+    <s:String x:Key="Str_NavTransfers">Transferler</s:String>
+    <s:String x:Key="Str_NavSettings">Ayarlar</s:String>
+
+    <!-- Cihazlar -->
+    <s:String x:Key="Str_DevicesTitle">Cihazlar</s:String>
+    <s:String x:Key="Str_ThisDeviceFormat">Bu cihaz: «{0}» — ağda görünür durumda</s:String>
+    <s:String x:Key="Str_SearchingDevices">Ağda LanBeam açık başka cihaz aranıyor…</s:String>
+    <s:String x:Key="Str_SearchingDevicesHint">Diğer bilgisayarda da LanBeam'i açın. İki cihaz aynı ağda (aynı modem/switch) olmalı.</s:String>
+    <s:String x:Key="Str_Paired">Eşleştirilmiş</s:String>
+    <s:String x:Key="Str_DragHint">Dosyaları bu karta sürükleyip bırakabilirsiniz</s:String>
+    <s:String x:Key="Str_SendFiles">Dosya Gönder</s:String>
+    <s:String x:Key="Str_Folder">Klasör</s:String>
+
+    <!-- Transferler -->
+    <s:String x:Key="Str_TransfersTitle">Transferler</s:String>
+    <s:String x:Key="Str_ClearFinished">Tamamlananları temizle</s:String>
+    <s:String x:Key="Str_NoTransfers">Henüz transfer yok. Cihazlar sekmesinden dosya gönderin.</s:String>
+    <s:String x:Key="Str_Cancel">İptal</s:String>
+    <s:String x:Key="Str_RemoveFromList">Listeden kaldır</s:String>
+    <s:String x:Key="Str_ReceiverFormat">Alıcı: {0}</s:String>
+    <s:String x:Key="Str_SenderFormat">Gönderen: {0}</s:String>
+    <s:String x:Key="Str_RemainingFormat">Kalan: {0}</s:String>
+
+    <!-- Transfer durumları -->
+    <s:String x:Key="Str_StateConnecting">Bağlanıyor…</s:String>
+    <s:String x:Key="Str_StatePairing">Eşleştirme bekleniyor…</s:String>
+    <s:String x:Key="Str_StateWaitingApproval">Karşı tarafın onayı bekleniyor…</s:String>
+    <s:String x:Key="Str_StateTransferring">Aktarılıyor</s:String>
+    <s:String x:Key="Str_StateVerifying">Doğrulanıyor…</s:String>
+    <s:String x:Key="Str_StateCompleted">Tamamlandı ✓</s:String>
+    <s:String x:Key="Str_StateRejected">Reddedildi</s:String>
+    <s:String x:Key="Str_StateCancelled">İptal edildi</s:String>
+    <s:String x:Key="Str_StateFailedFormat">Hata: {0}</s:String>
+    <s:String x:Key="Str_Unknown">bilinmiyor</s:String>
+
+    <!-- Ayarlar -->
+    <s:String x:Key="Str_SettingsTitle">Ayarlar</s:String>
+    <s:String x:Key="Str_Device">Cihaz</s:String>
+    <s:String x:Key="Str_DeviceNameLabel">Cihaz adı (diğer cihazlarda böyle görünür)</s:String>
+    <s:String x:Key="Str_Language">Dil / Language</s:String>
+    <s:String x:Key="Str_Avatar">Avatar</s:String>
+    <s:String x:Key="Str_PickPhoto">Fotoğraf seç…</s:String>
+    <s:String x:Key="Str_AvatarHint">Diğer cihazlarda böyle görünürsünüz.</s:String>
+    <s:String x:Key="Str_Presets">Hazır avatarlar:</s:String>
+    <s:String x:Key="Str_FileReceiving">Dosya Alımı</s:String>
+    <s:String x:Key="Str_DownloadFolder">Varsayılan indirme klasörü</s:String>
+    <s:String x:Key="Str_Change">Değiştir</s:String>
+    <s:String x:Key="Str_AlwaysAsk">Her transferde kaydedilecek yeri sor</s:String>
+    <s:String x:Key="Str_Performance">Performans</s:String>
+    <s:String x:Key="Str_StreamCountLabel">Paralel veri akışı sayısı:</s:String>
+    <s:String x:Key="Str_StreamCountHint">Kablolu gigabit ağda 4 idealdir. Wi-Fi ya da 2.5G+ ağlarda artırmayı deneyin.</s:String>
+    <s:String x:Key="Str_PortLabel">Dinleme portu (TCP):</s:String>
+    <s:String x:Key="Str_PortHint">Port değişikliği yeniden başlatınca etkinleşir. İki cihazda da aynı olmalı.</s:String>
+    <s:String x:Key="Str_System">Sistem</s:String>
+    <s:String x:Key="Str_AutoStart">Windows ile başlat (tray'de gizli)</s:String>
+    <s:String x:Key="Str_MinimizeToTray">Pencere kapatılınca tray'de çalışmaya devam et</s:String>
+    <s:String x:Key="Str_Install">Sabit konuma kur + masaüstü kısayolu</s:String>
+    <s:String x:Key="Str_InstallHint">Uygulamayı %LOCALAPPDATA%\LanBeam altına kopyalar ve masaüstü kısayolu oluşturur. Böylece exe'yi taşımana gerek kalmaz, sağ tık menüsü hep çalışır.</s:String>
+    <s:String x:Key="Str_AddContextMenu">Sağ tık menüsüne ekle</s:String>
+    <s:String x:Key="Str_RemoveContextMenu">Sağ tık menüsünden kaldır</s:String>
+    <s:String x:Key="Str_RepairFirewall">Güvenlik duvarı kuralını onar</s:String>
+    <s:String x:Key="Str_ContextMenuHint">Sağ tık menüsü: dosya/klasöre sağ tıklayıp «Diğer seçenekleri göster» altından «LanBeam ile gönder».</s:String>
+    <s:String x:Key="Str_PairedDevices">Eşleştirilmiş Cihazlar</s:String>
+    <s:String x:Key="Str_NoPaired">Henüz eşleştirilmiş cihaz yok. İlk transferde PIN ile eşleştirme yapılır.</s:String>
+    <s:String x:Key="Str_Remove">Kaldır</s:String>
+    <s:String x:Key="Str_About">Hakkında</s:String>
+    <s:String x:Key="Str_AboutFormat">LanBeam {0} — LAN üzerinde hızlı ve şifreli dosya transferi.
+Veri klasörü: {1}</s:String>
+    <s:String x:Key="Str_FingerprintFormat">Cihaz kimliği (SHA-256): {0}</s:String>
+
+    <!-- Gelen teklif -->
+    <s:String x:Key="Str_IncomingTransfer">Gelen Transfer</s:String>
+    <s:String x:Key="Str_IncomingTitle">Gelen dosya isteği</s:String>
+    <s:String x:Key="Str_WantsToSendFormat">«{0}» size dosya göndermek istiyor:</s:String>
+    <s:String x:Key="Str_OfferDetailFormat">{0} • {1} dosya</s:String>
+    <s:String x:Key="Str_WillAskFolder">Kabul ederseniz kaydedilecek klasör sorulacak.</s:String>
+    <s:String x:Key="Str_SaveToFormat">Kaydedilecek yer: {0}</s:String>
+    <s:String x:Key="Str_Reject">Reddet</s:String>
+    <s:String x:Key="Str_Accept">Kabul Et</s:String>
+    <s:String x:Key="Str_ChooseSaveFolder">Dosyalar nereye kaydedilsin?</s:String>
+    <s:String x:Key="Str_FolderCreateFailedFormat">Klasör oluşturulamadı: {0}</s:String>
+
+    <!-- Eşleştirme (alıcı PIN gösterir) -->
+    <s:String x:Key="Str_PairingTitle">Cihaz eşleştirme</s:String>
+    <s:String x:Key="Str_PairingInfoFormat">«{0}» bu cihazla eşleşmek istiyor. Aşağıdaki kodu yalnızca o cihazda girin. Kod ekranınızda başkası görebilecekse dikkatli olun.</s:String>
+    <s:String x:Key="Str_FingerprintChangedWarning">⚠ DİKKAT: Bu adı taşıyan cihaz daha önce farklı bir kimlikle eşleşmişti. Cihaz yeniden kurulduysa bu normaldir; aksi halde biri onu taklit ediyor olabilir. Emin değilseniz eşleştirmeyi iptal edin.</s:String>
+    <s:String x:Key="Str_WaitingForCode">Karşı tarafın kodu girmesi bekleniyor…</s:String>
+    <s:String x:Key="Str_PairingSuccess">Eşleştirme başarılı ✓</s:String>
+    <s:String x:Key="Str_PairingFailure">Eşleştirme başarısız ✗</s:String>
+
+    <!-- PIN girişi (gönderen kodu girer) -->
+    <s:String x:Key="Str_PinEntryTitle">Eşleştirme kodu</s:String>
+    <s:String x:Key="Str_EnterPinFormat">«{0}» ekranında görünen 6 haneli kodu girin.</s:String>
+    <s:String x:Key="Str_AttemptsLeftFormat">Kalan deneme hakkı: {0}</s:String>
+    <s:String x:Key="Str_Dismiss">Vazgeç</s:String>
+    <s:String x:Key="Str_Pair">Eşleştir</s:String>
+
+    <!-- Gönderim hedefi seçimi -->
+    <s:String x:Key="Str_SendToWho">Kime gönderilsin?</s:String>
+    <s:String x:Key="Str_ToSendFormat">Gönderilecek: {0}</s:String>
+    <s:String x:Key="Str_SendPickerHint">Diğer bilgisayarda da LanBeam açık olmalı ve ikisi aynı ağda bulunmalı.</s:String>
+    <s:String x:Key="Str_Send">Gönder</s:String>
+
+    <!-- Tray + genel -->
+    <s:String x:Key="Str_TrayTooltip">LanBeam — LAN dosya transferi</s:String>
+    <s:String x:Key="Str_OpenLanBeam">LanBeam'i Aç</s:String>
+    <s:String x:Key="Str_Exit">Çıkış</s:String>
+    <s:String x:Key="Str_UnexpectedErrorFormat">Beklenmeyen hata: {0}</s:String>
+
+    <!-- Güvenlik duvarı -->
+    <s:String x:Key="Str_FirewallTitle">LanBeam — Güvenlik Duvarı</s:String>
+    <s:String x:Key="Str_FirewallPrompt">LanBeam'in ağdan dosya alabilmesi için Windows Güvenlik Duvarı'nda izin gerekiyor.
+
+Kural şimdi eklensin mi? (Yönetici onayı istenecek)</s:String>
+    <s:String x:Key="Str_FirewallAdded">Güvenlik duvarı kuralı eklendi.</s:String>
+    <s:String x:Key="Str_FirewallFailed">Kural eklenemedi (yönetici onayı verilmedi olabilir).</s:String>
+
+    <!-- Kurulum / mesajlar -->
+    <s:String x:Key="Str_InstallTitle">LanBeam — Kurulum</s:String>
+    <s:String x:Key="Str_InstalledFormat">Kuruldu:
+{0}
+
+Masaüstü kısayolu oluşturuldu.</s:String>
+    <s:String x:Key="Str_ContextMenuRedirected">Sağ tık menüsü bu konuma yönlendirildi.</s:String>
+    <s:String x:Key="Str_DeleteTempCopy">Bundan sonra masaüstü kısayolundan (ya da sağ tık menüsünden) açın; bu geçici kopyayı silebilirsiniz.</s:String>
+    <s:String x:Key="Str_InstallFailedFormat">Kurulum başarısız: {0}</s:String>
+    <s:String x:Key="Str_AutoStartFailedFormat">Otomatik başlatma ayarlanamadı: {0}</s:String>
+    <s:String x:Key="Str_ContextMenuFailedFormat">Sağ tık menüsü ayarlanamadı: {0}</s:String>
+    <s:String x:Key="Str_ChooseDownloadFolder">Varsayılan indirme klasörünü seçin</s:String>
+    <s:String x:Key="Str_PickFilesTitleFormat">{0} cihazına gönderilecek dosyaları seçin</s:String>
+    <s:String x:Key="Str_PickFolderTitleFormat">{0} cihazına gönderilecek klasörü seçin</s:String>
+    <s:String x:Key="Str_PickAvatar">Avatar fotoğrafı seçin</s:String>
+    <s:String x:Key="Str_ImageFilter">Görüntüler|*.png;*.jpg;*.jpeg;*.bmp</s:String>
+    <s:String x:Key="Str_PhotoFailedFormat">Fotoğraf kullanılamadı: {0}</s:String>
+    <s:String x:Key="Str_UseThisAvatar">Bu avatarı kullan</s:String>
+
+    <!-- Birim/format -->
+    <s:String x:Key="Str_SpeedFormat">{0} MB/sn</s:String>
+    <s:String x:Key="Str_Sec">sn</s:String>
+    <s:String x:Key="Str_Min">dk</s:String>
+    <s:String x:Key="Str_Hour">sa</s:String>
+    <s:String x:Key="Str_FilesUnit">dosya</s:String>
+
+</ResourceDictionary>
