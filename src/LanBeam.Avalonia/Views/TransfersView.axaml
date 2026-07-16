@@ -1,0 +1,55 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="LanBeam.Ui.Views.TransfersView">
+
+    <Grid RowDefinitions="Auto,*">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="12,8,12,4">
+            <TextBlock Grid.Column="0" Text="{DynamicResource Str_TransfersTitle}" Classes="h1" />
+            <Button Grid.Column="1" VerticalAlignment="Center" Content="{DynamicResource Str_ClearFinished}"
+                    Click="ClearFinished_Click" />
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" Padding="4">
+            <Panel>
+                <TextBlock IsVisible="{Binding NoTransfers}" Margin="0,60,0,0" HorizontalAlignment="Center"
+                           FontSize="15" Opacity="0.6" Text="{DynamicResource Str_NoTransfers}" />
+
+                <ItemsControl ItemsSource="{Binding Transfers}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="card" Margin="8,6">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <TextBlock Grid.Column="0" Text="{Binding DirectionArrow}" FontSize="24"
+                                               FontWeight="Bold" Margin="0,0,16,0" VerticalAlignment="Center"
+                                               Foreground="#4C9BE8" />
+                                    <StackPanel Grid.Column="1">
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" />
+                                            <TextBlock Text="{Binding PeerText}" Opacity="0.6" FontSize="13"
+                                                       VerticalAlignment="Bottom" />
+                                        </StackPanel>
+                                        <ProgressBar Margin="0,8,0,0" Minimum="0" Maximum="100"
+                                                     Value="{Binding ProgressPercent}" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0" Spacing="14">
+                                            <TextBlock Text="{Binding StateText}" FontSize="12" Opacity="0.85" />
+                                            <TextBlock Text="{Binding BytesText}" FontSize="12" Opacity="0.6" />
+                                            <TextBlock Text="{Binding SpeedText}" FontSize="12" FontWeight="SemiBold"
+                                                       Foreground="#4C9BE8" />
+                                            <TextBlock Text="{Binding EtaText}" FontSize="12" Opacity="0.6" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                                        <Button Content="{DynamicResource Str_Cancel}" Command="{Binding CancelCommand}"
+                                                IsVisible="{Binding IsActive}" />
+                                        <Button Content="✕" ToolTip.Tip="{DynamicResource Str_RemoveFromList}"
+                                                IsVisible="{Binding IsFinished}" Click="Remove_Click" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Panel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

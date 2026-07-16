@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="LanBeam.Ui.Views.IncomingOfferWindow"
+        Title="{DynamicResource Str_IncomingTransfer}"
+        Width="440" SizeToContent="Height"
+        CanResize="False" Topmost="True" WindowStartupLocation="CenterScreen">
+
+    <StackPanel Margin="24">
+        <TextBlock Text="{DynamicResource Str_IncomingTitle}" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock x:Name="SenderText" Margin="0,16,0,0" FontSize="14" TextWrapping="Wrap" />
+
+        <Border Margin="0,14,0,0" Padding="14" CornerRadius="8" Background="#18808080">
+            <StackPanel>
+                <TextBlock x:Name="NameText" FontWeight="SemiBold" FontSize="15" TextWrapping="Wrap" />
+                <TextBlock x:Name="DetailText" Margin="0,6,0,0" Opacity="0.7" FontSize="13" />
+            </StackPanel>
+        </Border>
+
+        <TextBlock x:Name="DestinationText" Margin="0,12,0,0" Classes="dim" TextWrapping="Wrap" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0" Spacing="10">
+            <Button Content="{DynamicResource Str_Reject}" MinWidth="100" Click="Reject_Click" />
+            <Button x:Name="AcceptButton" Content="{DynamicResource Str_Accept}" MinWidth="120" Click="Accept_Click" />
+        </StackPanel>
+    </StackPanel>
+</Window>

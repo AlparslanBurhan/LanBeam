@@ -1,0 +1,25 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="LanBeam.Ui.Views.PairingPinWindow"
+        Title="{DynamicResource Str_PairingTitle}"
+        Width="420" SizeToContent="Height"
+        CanResize="False" Topmost="True" WindowStartupLocation="CenterScreen">
+
+    <StackPanel Margin="24">
+        <TextBlock Text="{DynamicResource Str_PairingTitle}" FontSize="20" FontWeight="SemiBold" />
+        <TextBlock x:Name="InfoText" Margin="0,14,0,0" FontSize="14" TextWrapping="Wrap" />
+
+        <Border Margin="0,18,0,0" Padding="20" CornerRadius="10" Background="#18808080">
+            <TextBlock x:Name="PinText" FontSize="44" FontWeight="Bold" HorizontalAlignment="Center"
+                       FontFamily="Consolas,monospace" />
+        </Border>
+
+        <StackPanel x:Name="WaitPanel" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0" Spacing="10">
+            <ProgressBar IsIndeterminate="True" Width="20" Height="20" />
+            <TextBlock Text="{DynamicResource Str_WaitingForCode}" Opacity="0.7" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <TextBlock x:Name="ResultText" Margin="0,16,0,0" FontSize="14" FontWeight="SemiBold"
+                   HorizontalAlignment="Center" IsVisible="False" />
+    </StackPanel>
+</Window>

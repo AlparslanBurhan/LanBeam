@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>LanBeam</string>
+    <key>CFBundleDisplayName</key>
+    <string>LanBeam</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.alparslanburhan.lanbeam</string>
+    <key>CFBundleExecutable</key>
+    <string>LanBeam</string>
+    <key>CFBundleIconFile</key>
+    <string>lanbeam.icns</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.3.5</string>
+    <key>CFBundleVersion</key>
+    <string>0.3.5</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>11.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
+    <!-- macOS yerel ağ izni: keşif (UDP multicast) ve transfer için gerekli. -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>LanBeam, aynı ağdaki cihazları bulmak ve dosya aktarmak için yerel ağı kullanır. / LanBeam uses the local network to discover devices and transfer files.</string>
+</dict>
+</plist>

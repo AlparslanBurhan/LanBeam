@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="LanBeam.Ui.Views.DevicesView">
+
+    <Grid RowDefinitions="Auto,*">
+        <StackPanel Grid.Row="0" Margin="12,8,12,4">
+            <TextBlock Text="{DynamicResource Str_DevicesTitle}" Classes="h1" />
+            <TextBlock x:Name="SelfInfoText" Margin="0,4,0,0" Opacity="0.7" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" Padding="4">
+            <Panel>
+                <!-- Boş durum -->
+                <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Margin="0,60,0,0" IsVisible="{Binding NoDevices}">
+                    <ProgressBar IsIndeterminate="True" Width="200" />
+                    <TextBlock Margin="0,16,0,0" FontSize="16" Opacity="0.8" TextAlignment="Center"
+                               Text="{DynamicResource Str_SearchingDevices}" />
+                    <TextBlock Margin="0,8,0,0" Opacity="0.55" TextAlignment="Center"
+                               TextWrapping="Wrap" MaxWidth="420"
+                               Text="{DynamicResource Str_SearchingDevicesHint}" />
+                </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding Devices}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="card" Width="270" Margin="8"
+                                    DragDrop.AllowDrop="True">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="44" Height="44" CornerRadius="22" ClipToBounds="True"
+                                                Background="{Binding PresetBrush}">
+                                            <Panel>
+                                                <TextBlock Text="{Binding PresetGlyph}" FontSize="20"
+                                                           IsVisible="{Binding ShowGlyph}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <Image Source="{Binding AvatarImage}" Stretch="UniformToFill"
+                                                       IsVisible="{Binding HasImage}" />
+                                            </Panel>
+                                        </Border>
+                                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="15" />
+                                            <TextBlock Text="{Binding Address}" Opacity="0.6" FontSize="12" />
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0"
+                                                IsVisible="{Binding IsTrusted}">
+                                        <TextBlock Text="🔒" FontSize="13" />
+                                        <TextBlock Text="{DynamicResource Str_Paired}" Margin="6,0,0,0" FontSize="12"
+                                                   Foreground="#4CC366" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <TextBlock Margin="0,10,0,0" Classes="dim" Text="{DynamicResource Str_DragHint}"
+                                               TextWrapping="Wrap" />
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0" Spacing="8">
+                                        <Button Content="{DynamicResource Str_SendFiles}" Click="SendFiles_Click" />
+                                        <Button Content="{DynamicResource Str_Folder}" Click="SendFolder_Click" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Panel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

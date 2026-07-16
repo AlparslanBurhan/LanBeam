@@ -5,11 +5,22 @@ namespace LanBeam.Core.Security;
 
 /// <summary>
 /// Cihaza özel kalıcı self-signed sertifikayı üretir ve saklar.
-/// PFX, Windows'ta DPAPI (kullanıcıya bağlı) ile şifrelenerek diske yazılır.
+/// Windows'ta PFX, DPAPI (kullanıcıya bağlı) ile şifrelenir; macOS/Linux'ta dosya yalnızca
+/// sahibin okuyabileceği izinle (chmod 600) yazılır.
 /// </summary>
 public static class CertificateManager
 {
     private const string FileName = "identity.pfx.dpapi";
+
+    /// <summary>
+    /// Windows'ta SChannel (SslStream) ephemeral anahtarla el sıkışamadığından UserKeySet gerekir.
+    /// macOS/Linux'ta SslStream OpenSSL kullanır; EphemeralKeySet sorunsuz çalışır ve anahtarı
+    /// sistem anahtar deposuna yazmaz (PFX'i biz zaten kalıcı tutuyoruz).
+    /// </summary>
+    private static X509KeyStorageFlags LoadFlags =>
+        OperatingSystem.IsWindows()
+            ? X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.Exportable
+            : X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable;
 
     public static X509Certificate2 GetOrCreate(string dataDirectory, string deviceId)
     {
@@ -20,9 +31,7 @@ public static class CertificateManager
             try
             {
                 byte[] pfx = Unprotect(File.ReadAllBytes(path));
-                // EphemeralKeySet KULLANMA: SChannel (SslStream) ephemeral anahtarla el sıkışamaz.
-                return new X509Certificate2(pfx, (string?)null,
-                    X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.Exportable);
+                return new X509Certificate2(pfx, (string?)null, LoadFlags);
             }
             catch (Exception)
             {
@@ -50,9 +59,17 @@ public static class CertificateManager
 
         byte[] export = ephemeral.Export(X509ContentType.Pfx);
         File.WriteAllBytes(path, Protect(export));
+        RestrictToOwner(path);
 
-        return new X509Certificate2(export, (string?)null,
-            X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.Exportable);
+        return new X509Certificate2(export, (string?)null, LoadFlags);
+    }
+
+    /// <summary>macOS/Linux'ta dosyayı yalnızca sahibin okuyup yazabileceği izne (600) çeker.</summary>
+    private static void RestrictToOwner(string path)
+    {
+        if (OperatingSystem.IsWindows()) return;
+        try { File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite); }
+        catch (Exception) { }
     }
 
     /// <summary>Sertifikanın SHA-256 parmak izi, büyük harf hex.</summary>

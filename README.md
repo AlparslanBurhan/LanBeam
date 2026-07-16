@@ -1,8 +1,9 @@
 # LanBeam
 
-**Fast, encrypted file transfer over your local network — for Windows.**
-Like Steam's "transfer over local network", but for **any file or folder**. Two PCs discover
+**Fast, encrypted file transfer over your local network — for Windows and macOS.**
+Like Steam's "transfer over local network", but for **any file or folder**. Devices discover
 each other automatically; files move over an encrypted connection at gigabit speed (~110+ MB/s).
+**Windows ↔ macOS transfers work out of the box** (shared protocol engine).
 
 *English below · [Türkçe için tıklayın](#türkçe)*
 
@@ -62,11 +63,20 @@ dotnet publish src/LanBeam.App -p:PublishProfile=win-x64
 
 Requires the **.NET 8 SDK**.
 
+### macOS build
+The macOS app is an [Avalonia](https://avaloniaui.net) UI that reuses the same `LanBeam.Core`
+engine, so it interoperates with the Windows app. Build it on a Mac:
+```bash
+cd src/LanBeam.Avalonia/macos && ./build-macos.sh   # → bin/macos/LanBeam.app
+```
+See [src/LanBeam.Avalonia/macos/README-macos.md](src/LanBeam.Avalonia/macos/README-macos.md).
+
 ## Architecture
 
 ```
-src/LanBeam.Core   UI-less core: discovery, security, protocol, transfer engine
-src/LanBeam.App    WPF UI (WPF-UI / Fluent, tray, dialogs, Explorer integration, i18n)
+src/LanBeam.Core       UI-less core: discovery, security, protocol, transfer engine (net8.0)
+src/LanBeam.App        Windows UI — WPF (WPF-UI / Fluent, tray, Explorer integration, i18n)
+src/LanBeam.Avalonia   macOS/Linux/Windows UI — Avalonia (reuses Core), TR/EN
 tests/LanBeam.Tests
 ```
 
