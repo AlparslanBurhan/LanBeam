@@ -65,9 +65,27 @@ public partial class SettingsView : UserControl
     {
         Version? v = Assembly.GetExecutingAssembly().GetName().Version;
         string ver = v is null ? "" : $"{v.Major}.{v.Minor}.{v.Build}";
-        AboutText.Text = Loc.Format("Str_AboutFormat", ver, App.Node.Settings.DataDirectory);
+        AboutText.Text = Loc.Format("Str_AboutFormat", ver, FriendlyPath(App.Node.Settings.DataDirectory));
         FingerprintText.Text = Loc.Format("Str_FingerprintFormat", App.Node.CertFingerprint);
         UpdateContextMenuButton();
+    }
+
+    /// <summary>Kullanıcı klasörü ön eklerini ortam değişkeni adlarıyla değiştirir (kullanıcı adını gizler).</summary>
+    private static string FriendlyPath(string full)
+    {
+        (Environment.SpecialFolder folder, string token)[] map =
+        [
+            (Environment.SpecialFolder.ApplicationData, "%APPDATA%"),
+            (Environment.SpecialFolder.LocalApplicationData, "%LOCALAPPDATA%"),
+            (Environment.SpecialFolder.UserProfile, "%USERPROFILE%"),
+        ];
+        foreach ((Environment.SpecialFolder folder, string token) in map)
+        {
+            string prefix = Environment.GetFolderPath(folder);
+            if (!string.IsNullOrEmpty(prefix) && full.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return token + full[prefix.Length..];
+        }
+        return full;
     }
 
     private void Save()

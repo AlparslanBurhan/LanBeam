@@ -2,7 +2,8 @@
     x:Class="LanBeam.App.Views.SettingsView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:ctrl="clr-namespace:LanBeam.App.Controls">
 
     <UserControl.Resources>
         <!-- Kart: sabit genişlik; WrapPanel geniş pencerede 2 sütuna akıtır -->
@@ -26,7 +27,7 @@
         <StackPanel Margin="12,8,12,24">
             <TextBlock Text="{DynamicResource Str_SettingsTitle}" FontSize="26" FontWeight="SemiBold" Margin="0,0,0,12" />
 
-            <WrapPanel Orientation="Horizontal">
+            <ctrl:MasonryPanel ColumnWidth="388">
 
                 <!-- Dil / Language -->
                 <StackPanel Margin="0,0,16,16">
@@ -199,7 +200,7 @@
                     </Border>
                 </StackPanel>
 
-            </WrapPanel>
+            </ctrl:MasonryPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>
