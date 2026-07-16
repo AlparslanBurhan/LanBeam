@@ -51,11 +51,7 @@ there — so you can delete the downloaded copy and everything keeps working.
 
 ```bash
 dotnet build                 # build everything
-dotnet test                  # 35 tests: unit + loopback E2E + resume + discovery + security
 dotnet run --project src/LanBeam.App
-
-# Two copies on one machine for local testing:
-powershell -ExecutionPolicy Bypass -File scripts/dev-iki-kopya.ps1
 
 # Single-file release build (no .NET required to run) -> publish/LanBeam.App.exe:
 dotnet publish src/LanBeam.App -p:PublishProfile=win-x64
@@ -77,7 +73,6 @@ See [src/LanBeam.Avalonia/macos/README-macos.md](src/LanBeam.Avalonia/macos/READ
 src/LanBeam.Core       UI-less core: discovery, security, protocol, transfer engine (net8.0)
 src/LanBeam.App        Windows UI — WPF (WPF-UI / Fluent, tray, Explorer integration, i18n)
 src/LanBeam.Avalonia   macOS/Linux/Windows UI — Avalonia (reuses Core), TR/EN
-tests/LanBeam.Tests
 ```
 
 | Layer | How it works |
@@ -91,10 +86,9 @@ tests/LanBeam.Tests
 
 ## Security
 
-LanBeam has been through an independent security review; all findings were fixed (see
-[GUVENLIK-DENETIM-RAPORU.md](GUVENLIK-DENETIM-RAPORU.md), in Turkish). Highlights: tiered frame
-limits against pre-auth memory DoS, connection caps + timeouts, disk-space checks, avatar exposure
-limited to paired devices, and resume integrity re-verification.
+LanBeam has been through an independent security review; all findings were fixed. Highlights:
+tiered frame limits against pre-auth memory DoS, connection caps + timeouts, disk-space checks,
+avatar exposure limited to paired devices, and resume integrity re-verification.
 
 Suitable for trusted home/office LANs. As with any peer-to-peer app, use it on networks you trust.
 
@@ -142,7 +136,6 @@ başlatmayı oraya yönlendirir — indirdiğiniz kopyayı silebilirsiniz. (Wind
 
 ```bash
 dotnet build      # tümünü derle
-dotnet test       # 35 test (birim + loopback E2E + resume + keşif + güvenlik)
 dotnet publish src/LanBeam.App -p:PublishProfile=win-x64   # tek dosya exe
 ```
 **.NET 8 SDK** gerekir. Mimari ve güvenlik ayrıntıları için yukarıdaki İngilizce bölüme bakın.

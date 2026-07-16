@@ -6,3 +6,8 @@ publish/
 .idea/
 *.suo
 TestResults/
+
+# Local-only: not published to the public repo
+tests/
+scripts/
+GUVENLIK-DENETIM-RAPORU.md

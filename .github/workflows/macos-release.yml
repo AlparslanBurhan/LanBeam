@@ -1,0 +1,46 @@
+name: macOS build & release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-14 # Apple Silicon runner
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build .app bundles and .dmg (arm64 + x64)
+        run: |
+          set -euo pipefail
+          cd src/LanBeam.Avalonia/macos
+          chmod +x build-macos.sh
+          for RID in osx-arm64 osx-x64; do
+            ./build-macos.sh "$RID"
+            if [ "$RID" = "osx-arm64" ]; then SUFFIX="apple-silicon"; else SUFFIX="intel"; fi
+            hdiutil create -volname LanBeam \
+              -srcfolder "../bin/macos/LanBeam.app" \
+              -ov -format UDZO "$GITHUB_WORKSPACE/LanBeam-$SUFFIX.dmg"
+          done
+          ls -lh "$GITHUB_WORKSPACE"/*.dmg
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: LanBeam-*.dmg
+
+      - name: Attach .dmg to the release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: LanBeam-*.dmg
+          fail_on_unmatched_files: true
