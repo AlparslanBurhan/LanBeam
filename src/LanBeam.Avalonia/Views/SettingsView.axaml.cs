@@ -134,6 +134,7 @@ public partial class SettingsView : UserControl
                         Width = 22,
                         Height = 22,
                         Stretch = Stretch.Uniform,
+                        Margin = new Avalonia.Thickness(0, 6, 0, 0),
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center,
                         Child = new TextBlock { Text = glyph },

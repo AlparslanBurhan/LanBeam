@@ -36,7 +36,7 @@
                                         <Border Width="44" Height="44" CornerRadius="22" ClipToBounds="True"
                                                 Background="{Binding PresetBrush}">
                                             <Panel>
-                                                <Viewbox Width="24" Height="24" Stretch="Uniform"
+                                                <Viewbox Width="24" Height="24" Stretch="Uniform" Margin="0,6,0,0"
                                                          HorizontalAlignment="Center" VerticalAlignment="Center"
                                                          IsVisible="{Binding ShowGlyph}">
                                                     <TextBlock Text="{Binding PresetGlyph}" />
