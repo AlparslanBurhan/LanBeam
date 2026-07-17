@@ -11,7 +11,7 @@ public sealed class DeviceItemViewModel : ObservableObject
     private string _address;
     private bool _isTrusted;
     private Bitmap? _avatarImage;
-    private string _presetGlyph = "";
+    private Geometry? _presetIcon;
     private IBrush _presetBrush = Brushes.Gray;
 
     public DeviceInfo Device { get; private set; }
@@ -37,7 +37,7 @@ public sealed class DeviceItemViewModel : ObservableObject
     }
     public bool HasImage => _avatarImage is not null;
     public bool ShowGlyph => _avatarImage is null;
-    public string PresetGlyph { get => _presetGlyph; private set => Set(ref _presetGlyph, value); }
+    public Geometry? PresetIcon { get => _presetIcon; private set => Set(ref _presetIcon, value); }
     public IBrush PresetBrush { get => _presetBrush; private set => Set(ref _presetBrush, value); }
 
     public void Update(DeviceInfo device)
@@ -49,8 +49,8 @@ public sealed class DeviceItemViewModel : ObservableObject
 
     public void ApplyAvatar(Bitmap? image)
     {
-        (string glyph, IBrush brush) = AvatarPalette.ForDevice(Device.AvatarTag, Device.DeviceId);
-        PresetGlyph = glyph;
+        (Geometry icon, IBrush brush) = AvatarPalette.ForDevice(Device.AvatarTag, Device.DeviceId);
+        PresetIcon = icon;
         PresetBrush = brush;
         AvatarImage = image;
     }

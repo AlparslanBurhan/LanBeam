@@ -36,10 +36,12 @@
                                         <Border Width="44" Height="44" CornerRadius="22" ClipToBounds="True"
                                                 Background="{Binding PresetBrush}">
                                             <Panel>
-                                                <Viewbox Width="24" Height="24" Stretch="Uniform" Margin="0,6,0,0"
+                                                <Viewbox Width="24" Height="24" Stretch="Uniform"
                                                          HorizontalAlignment="Center" VerticalAlignment="Center"
                                                          IsVisible="{Binding ShowGlyph}">
-                                                    <TextBlock Text="{Binding PresetGlyph}" />
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Data="{Binding PresetIcon}" Fill="White" />
+                                                    </Canvas>
                                                 </Viewbox>
                                                 <Image Source="{Binding AvatarImage}" Stretch="UniformToFill"
                                                        IsVisible="{Binding HasImage}" />

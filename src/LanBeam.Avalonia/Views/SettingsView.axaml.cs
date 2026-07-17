@@ -115,7 +115,7 @@ public partial class SettingsView : UserControl
         if (PresetPanel.Children.Count > 0) return;
         for (int i = 0; i < AvatarPalette.Count; i++)
         {
-            (string glyph, IBrush brush) = AvatarPalette.Get(i);
+            (Geometry icon, IBrush brush) = AvatarPalette.Get(i);
             var button = new Button
             {
                 Margin = new Avalonia.Thickness(0, 4, 8, 4),
@@ -134,10 +134,14 @@ public partial class SettingsView : UserControl
                         Width = 22,
                         Height = 22,
                         Stretch = Stretch.Uniform,
-                        Margin = new Avalonia.Thickness(0, 6, 0, 0),
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center,
-                        Child = new TextBlock { Text = glyph },
+                        Child = new Canvas
+                        {
+                            Width = 24,
+                            Height = 24,
+                            Children = { new Avalonia.Controls.Shapes.Path { Data = icon, Fill = Brushes.White } },
+                        },
                     },
                 },
             };
@@ -186,13 +190,13 @@ public partial class SettingsView : UserControl
         {
             PreviewImage.Source = new Bitmap(App.Node.CustomAvatarPath);
             PreviewImage.IsVisible = true;
-            PreviewGlyph.IsVisible = false;
+            PreviewIconBox.IsVisible = false;
         }
         else
         {
-            (string glyph, IBrush brush) = AvatarPalette.ForDevice(tag, App.Node.Settings.Current.DeviceId);
-            PreviewGlyph.Text = glyph;
-            PreviewGlyph.IsVisible = true;
+            (Geometry icon, IBrush brush) = AvatarPalette.ForDevice(tag, App.Node.Settings.Current.DeviceId);
+            PreviewIcon.Data = icon;
+            PreviewIconBox.IsVisible = true;
             PreviewCircle.Background = brush;
             PreviewImage.IsVisible = false;
         }

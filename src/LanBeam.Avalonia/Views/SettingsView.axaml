@@ -42,9 +42,11 @@
                                 <Border Width="56" Height="56" CornerRadius="28" ClipToBounds="True"
                                         x:Name="PreviewCircle">
                                     <Panel>
-                                        <Viewbox Width="30" Height="30" Stretch="Uniform" Margin="0,8,0,0"
+                                        <Viewbox x:Name="PreviewIconBox" Width="30" Height="30" Stretch="Uniform"
                                                  HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <TextBlock x:Name="PreviewGlyph" />
+                                            <Canvas Width="24" Height="24">
+                                                <Path x:Name="PreviewIcon" Fill="White" />
+                                            </Canvas>
                                         </Viewbox>
                                         <Image x:Name="PreviewImage" Stretch="UniformToFill" IsVisible="False" />
                                     </Panel>
