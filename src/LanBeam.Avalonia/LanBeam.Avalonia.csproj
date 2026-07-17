@@ -8,7 +8,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>LanBeam</AssemblyName>
     <RootNamespace>LanBeam.Ui</RootNamespace>
-    <Version>0.3.6</Version>
+    <Version>0.3.7</Version>
   </PropertyGroup>
 
   <ItemGroup>

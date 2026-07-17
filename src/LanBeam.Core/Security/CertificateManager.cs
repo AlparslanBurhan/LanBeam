@@ -14,13 +14,21 @@ public static class CertificateManager
 
     /// <summary>
     /// Windows'ta SChannel (SslStream) ephemeral anahtarla el sıkışamadığından UserKeySet gerekir.
-    /// macOS/Linux'ta SslStream OpenSSL kullanır; EphemeralKeySet sorunsuz çalışır ve anahtarı
-    /// sistem anahtar deposuna yazmaz (PFX'i biz zaten kalıcı tutuyoruz).
+    /// macOS'ta Apple sağlayıcısı EphemeralKeySet ile PFX yüklemeyi DESTEKLEMEZ (çöker), o yüzden
+    /// bayrağı kaldırıyoruz (varsayılan anahtar seti). Linux'ta EphemeralKeySet sorunsuz çalışır ve
+    /// anahtarı sistem deposuna yazmaz (PFX'i biz zaten kalıcı tutuyoruz).
     /// </summary>
-    private static X509KeyStorageFlags LoadFlags =>
-        OperatingSystem.IsWindows()
-            ? X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.Exportable
-            : X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable;
+    private static X509KeyStorageFlags LoadFlags
+    {
+        get
+        {
+            if (OperatingSystem.IsWindows())
+                return X509KeyStorageFlags.UserKeySet | X509KeyStorageFlags.Exportable;
+            if (OperatingSystem.IsMacOS())
+                return X509KeyStorageFlags.Exportable;
+            return X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.Exportable;
+        }
+    }
 
     public static X509Certificate2 GetOrCreate(string dataDirectory, string deviceId)
     {
