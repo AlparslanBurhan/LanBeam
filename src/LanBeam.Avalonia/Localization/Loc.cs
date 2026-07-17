@@ -95,6 +95,7 @@ public static class Loc
         ["Str_Remove"] = ("Kaldır", "Remove"),
         ["Str_About"] = ("Hakkında", "About"),
         ["Str_AboutFormat"] = ("LanBeam {0} — LAN üzerinde hızlı ve şifreli dosya transferi.\nVeri klasörü: {1}", "LanBeam {0} — fast, encrypted file transfer over the LAN.\nData folder: {1}"),
+        ["Str_AboutNoPath"] = ("LanBeam {0} — LAN üzerinde hızlı ve şifreli dosya transferi.", "LanBeam {0} — fast, encrypted file transfer over the LAN."),
         ["Str_FingerprintFormat"] = ("Cihaz kimliği (SHA-256): {0}", "Device identity (SHA-256): {0}"),
 
         ["Str_IncomingTransfer"] = ("Gelen Transfer", "Incoming Transfer"),

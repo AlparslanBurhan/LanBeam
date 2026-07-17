@@ -36,9 +36,11 @@
                                         <Border Width="44" Height="44" CornerRadius="22" ClipToBounds="True"
                                                 Background="{Binding PresetBrush}">
                                             <Panel>
-                                                <TextBlock Text="{Binding PresetGlyph}" FontSize="20"
-                                                           IsVisible="{Binding ShowGlyph}"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <Viewbox Width="24" Height="24" Stretch="Uniform"
+                                                         HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                         IsVisible="{Binding ShowGlyph}">
+                                                    <TextBlock Text="{Binding PresetGlyph}" />
+                                                </Viewbox>
                                                 <Image Source="{Binding AvatarImage}" Stretch="UniformToFill"
                                                        IsVisible="{Binding HasImage}" />
                                             </Panel>

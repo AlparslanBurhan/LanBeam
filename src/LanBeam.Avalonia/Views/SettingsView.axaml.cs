@@ -70,7 +70,10 @@ public partial class SettingsView : UserControl
     {
         Version? v = Assembly.GetExecutingAssembly().GetName().Version;
         string ver = v is null ? "" : $"{v.Major}.{v.Minor}.{v.Build}";
-        AboutText.Text = Loc.Format("Str_AboutFormat", ver, FriendlyPath(App.Node.Settings.DataDirectory));
+        // Veri klasörü yolu (ve %APPDATA% gibi token'lar) yalnızca Windows'ta anlamlı; macOS/Linux'ta gizle.
+        AboutText.Text = OperatingSystem.IsWindows()
+            ? Loc.Format("Str_AboutFormat", ver, FriendlyPath(App.Node.Settings.DataDirectory))
+            : Loc.Format("Str_AboutNoPath", ver);
         FingerprintText.Text = Loc.Format("Str_FingerprintFormat", App.Node.CertFingerprint);
     }
 
@@ -126,12 +129,14 @@ public partial class SettingsView : UserControl
                     Height = 40,
                     CornerRadius = new Avalonia.CornerRadius(20),
                     Background = brush,
-                    Child = new TextBlock
+                    Child = new Viewbox
                     {
-                        Text = glyph,
-                        FontSize = 18,
+                        Width = 22,
+                        Height = 22,
+                        Stretch = Stretch.Uniform,
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center,
+                        Child = new TextBlock { Text = glyph },
                     },
                 },
             };
