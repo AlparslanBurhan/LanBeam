@@ -39,9 +39,9 @@ there — so you can delete the downloaded copy and everything keeps working. Re
 
 **macOS** — download the `.dmg` for your Mac from the [Releases](../../releases)
 (`LanBeam-apple-silicon.dmg` for M-series, `LanBeam-intel.dmg` for Intel), open it and drag
-**LanBeam** to Applications. The build is ad-hoc signed, so on first launch right-click the app →
-**Open** (or, if it bounces in the Dock, run `xattr -cr /Applications/LanBeam.app` once in Terminal).
-Requires macOS 11+.
+**LanBeam** to Applications. The build is ad-hoc signed, so on first launch macOS blocks it: open
+**System Settings → Privacy & Security** and click **Open Anyway** for LanBeam (or right-click the app
+→ **Open**). It opens normally from then on — no Terminal needed. Requires macOS 11+.
 
 ## Usage
 
@@ -132,9 +132,9 @@ başlatmayı oraya yönlendirir — indirdiğiniz kopyayı silebilirsiniz. (Wind
 
 **macOS** — [Releases](../../releases)'ten Mac'inize uygun `.dmg`'yi indirin
 (`LanBeam-apple-silicon.dmg` M-serisi, `LanBeam-intel.dmg` Intel için), açıp **LanBeam**'i
-Applications'a sürükleyin. Uygulama ad-hoc imzalı olduğundan ilk açılışta sağ tık → **Aç** deyin
-(dock'ta zıplayıp kapanırsa Terminal'de bir kez `xattr -cr /Applications/LanBeam.app` çalıştırın).
-macOS 11+ gerekir.
+Applications'a sürükleyin. Uygulama ad-hoc imzalı olduğundan ilk açılışta macOS engeller:
+**Sistem Ayarları → Gizlilik ve Güvenlik**'e gidip LanBeam için **Yine de Aç** deyin (veya uygulamaya
+sağ tık → **Aç**). Sonrasında normal açılır — Terminal'e gerek yok. macOS 11+ gerekir.
 
 ### Kullanım
 
