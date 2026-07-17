@@ -25,18 +25,23 @@ each other automatically; files move over an encrypted connection at gigabit spe
 - **Resume** — an interrupted transfer restarted to the same folder skips already-completed chunks
   (verified on disk with xxHash3).
 - **Integrity** — every chunk is verified; corrupted chunks are re-requested automatically.
-- **Right-click menu** — right-click a file/folder → "Send with LanBeam".
+- **Right-click menu** (Windows) — right-click a file/folder → "Send with LanBeam".
 - **Runs in the tray** — keeps receiving in the background after the window is closed.
 - **Drag & drop**, **custom avatars**, **English / Turkish UI**.
 
 ## Install
 
-Download `LanBeam.App.exe` from the [Releases](../../releases), run it, then go to
+**Windows** — download `LanBeam.App.exe` from the [Releases](../../releases), run it, then go to
 **Settings → System → "Install to a fixed location + desktop shortcut"**. This copies the app under
 `%LOCALAPPDATA%\LanBeam`, creates a desktop shortcut, and points the right-click menu / auto-start
-there — so you can delete the downloaded copy and everything keeps working.
+there — so you can delete the downloaded copy and everything keeps working. Requires Windows 10/11
+(x64); no .NET installation needed — the exe is self-contained.
 
-> Requires Windows 10/11 (x64). No .NET installation needed — the exe is self-contained.
+**macOS** — download the `.dmg` for your Mac from the [Releases](../../releases)
+(`LanBeam-apple-silicon.dmg` for M-series, `LanBeam-intel.dmg` for Intel), open it and drag
+**LanBeam** to Applications. The build is ad-hoc signed, so on first launch right-click the app →
+**Open** (or, if it bounces in the Dock, run `xattr -cr /Applications/LanBeam.app` once in Terminal).
+Requires macOS 11+.
 
 ## Usage
 
@@ -78,7 +83,7 @@ src/LanBeam.Avalonia   macOS/Linux/Windows UI — Avalonia (reuses Core), TR/EN
 | Layer | How it works |
 |---|---|
 | Discovery | UDP multicast `239.255.42.99:45654` — announce every 5 s + unicast reply, drop after 15 s |
-| Identity | Per-device persistent self-signed ECDSA P-256 cert (stored encrypted via DPAPI); identity = SHA-256 fingerprint |
+| Identity | Per-device persistent self-signed ECDSA P-256 cert (encrypted via DPAPI on Windows, file mode 600 on macOS); identity = SHA-256 fingerprint |
 | Pairing | 6-digit PIN + HMAC-SHA256 mutual proof over fingerprints + nonces, 3-attempt limit |
 | Control channel | TLS over TCP 45655 with length-prefixed JSON (offer, accept/reject, progress, cancel) |
 | Data channels | N parallel TLS connections; 16 MB chunks from one work queue; xxHash3 integrity; `RandomAccess.Write` to offset |
@@ -102,9 +107,10 @@ Suitable for trusted home/office LANs. As with any peer-to-peer app, use it on n
 
 ## Türkçe
 
-**LAN üzerinde hızlı ve şifreli dosya transferi — Windows için.**
-Steam'in "yerel ağ üzerinden aktarım" özelliği gibi, ama **her tür dosya ve klasör** için. İki PC
+**LAN üzerinde hızlı ve şifreli dosya transferi — Windows ve macOS için.**
+Steam'in "yerel ağ üzerinden aktarım" özelliği gibi, ama **her tür dosya ve klasör** için. İki cihaz
 birbirini otomatik bulur; dosyalar şifreli bağlantı üzerinden gigabit hızında (~110+ MB/s) aktarılır.
+**Windows ↔ macOS transferi doğrudan çalışır** (ortak protokol motoru).
 
 ### Özellikler
 
@@ -115,14 +121,20 @@ birbirini otomatik bulur; dosyalar şifreli bağlantı üzerinden gigabit hızı
 - **PIN eşleştirme (MITM koruması)** — ilk transferde alıcının ekranındaki 6 haneli kodu gönderen girer;
   eşleşen cihazlar sertifika sabitleme ile hatırlanır.
 - **Kabul/ret + konum seçimi**, **devam ettirme (resume)**, **xxHash3 bütünlük doğrulaması**.
-- **Sağ tık menüsü**, **tray'de arka planda çalışma**, **sürükle-bırak**, **avatarlar**, **Türkçe/İngilizce arayüz**.
+- **Sağ tık menüsü (Windows)**, **tray'de arka planda çalışma**, **sürükle-bırak**, **avatarlar**, **Türkçe/İngilizce arayüz**.
 
 ### Kurulum
 
-[Releases](../../releases) bölümünden `LanBeam.App.exe`'yi indirip çalıştırın, sonra
+**Windows** — [Releases](../../releases) bölümünden `LanBeam.App.exe`'yi indirip çalıştırın, sonra
 **Ayarlar → Sistem → "Sabit konuma kur + masaüstü kısayolu"** deyin. Bu, uygulamayı
 `%LOCALAPPDATA%\LanBeam` altına kopyalar, masaüstü kısayolu oluşturur ve sağ tık menüsü / otomatik
 başlatmayı oraya yönlendirir — indirdiğiniz kopyayı silebilirsiniz. (Windows 10/11 x64; .NET kurulumu gerekmez.)
+
+**macOS** — [Releases](../../releases)'ten Mac'inize uygun `.dmg`'yi indirin
+(`LanBeam-apple-silicon.dmg` M-serisi, `LanBeam-intel.dmg` Intel için), açıp **LanBeam**'i
+Applications'a sürükleyin. Uygulama ad-hoc imzalı olduğundan ilk açılışta sağ tık → **Aç** deyin
+(dock'ta zıplayıp kapanırsa Terminal'de bir kez `xattr -cr /Applications/LanBeam.app` çalıştırın).
+macOS 11+ gerekir.
 
 ### Kullanım
 
@@ -142,4 +154,4 @@ dotnet publish src/LanBeam.App -p:PublishProfile=win-x64   # tek dosya exe
 
 ---
 
-*Built with .NET 8 + WPF. 🤖 Developed with the help of [Claude Code](https://claude.com/claude-code).*
+*Built with .NET 8 — WPF on Windows, Avalonia on macOS. 🤖 Developed with the help of [Claude Code](https://claude.com/claude-code).*
