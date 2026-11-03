@@ -486,6 +486,9 @@ public sealed class TransferListener : IDisposable
                 return;
             }
 
+            // Gönderen duraklatınca/iptal edince veri akışı kontrol mesajından önce kopabilir:
+            // nedeni doğru göstermek için o mesajı kısa süre bekle.
+            await Task.WhenAny(controlLoop, Task.Delay(1000)).ConfigureAwait(false);
             if (endState == TransferState.Failed)
             {
                 // Yerel hata (ör. disk dolu) ise gönderen boşuna yeniden denemesin, nedeni görsün.
