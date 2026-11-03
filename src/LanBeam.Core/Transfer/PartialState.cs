@@ -5,6 +5,16 @@ using LanBeam.Core.Protocol;
 
 namespace LanBeam.Core.Transfer;
 
+/// <summary>Hedef dosyanın kayıt anındaki boyutu ve son yazılma zamanı.</summary>
+public sealed record FileStamp(long Length, long Modified)
+{
+    public static FileStamp? Of(string path)
+    {
+        var info = new FileInfo(path);
+        return info.Exists ? new FileStamp(info.Length, info.LastWriteTimeUtc.Ticks) : null;
+    }
+}
+
 /// <summary>
 /// Yarım kalan bir alımın durumu. Uygulama veri klasöründe, (gönderen parmak izi + içerik imzası)
 /// başına bir dosya olarak saklanır: aynı gönderen aynı içeriği yeniden gönderirse tamamlanan
@@ -32,12 +42,18 @@ public sealed class PartialState
     /// </summary>
     public Dictionary<string, Dictionary<int, ulong>> CompletedChunkHashesByPath { get; set; } = new();
 
-    /// <summary>İçeriğin kimliği: sıralı (yol|boyut) listesinin SHA-256'sı.</summary>
+    /// <summary>
+    /// Göreli yol → kayıt anındaki hedef dosya damgası. Damga değişmediyse parçalar yeniden okunmaz
+    /// (büyük transferde devam dakikalar sürmesin); değiştiyse her parça hash'iyle doğrulanır.
+    /// </summary>
+    public Dictionary<string, FileStamp> Stamps { get; set; } = new();
+
+    /// <summary>İçeriğin kimliği: sıralı (yol|boyut|değişme zamanı) listesinin SHA-256'sı.</summary>
     public static string ComputeSignature(IEnumerable<FileEntry> files)
     {
         var sb = new StringBuilder();
         foreach (FileEntry f in files.OrderBy(f => f.RelativePath, StringComparer.Ordinal))
-            sb.Append(f.RelativePath).Append('|').Append(f.Size).Append('\n');
+            sb.Append(f.RelativePath).Append('|').Append(f.Size).Append('|').Append(f.Modified).Append('\n');
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sb.ToString())));
     }
 

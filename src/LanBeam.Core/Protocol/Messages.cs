@@ -43,7 +43,8 @@ public sealed record HelloMessage(
 
 public sealed record HelloAckMessage(string DeviceId, string DeviceName, bool Trusted);
 
-public sealed record FileEntry(int Id, string RelativePath, long Size);
+/// <param name="Modified">Kaynağın son yazılma zamanı (UTC tick); aynı boyutta değişen içerik resume'da birleştirilmesin.</param>
+public sealed record FileEntry(int Id, string RelativePath, long Size, long Modified = 0);
 
 /// <summary>Gönderilecek içeriğin tam metadata'sı.</summary>
 public sealed record TransferOffer(

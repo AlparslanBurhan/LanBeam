@@ -34,6 +34,7 @@ public sealed class ReceiveSession : IDisposable
 
     private readonly Dictionary<string, string> _rootRenames;
     private int _remainingFiles;
+    private bool _autoResume = true;
     private int _sentinelsSeen;
     private int _expectedSentinels;
     private int _finalized;
@@ -92,12 +93,14 @@ public sealed class ReceiveSession : IDisposable
                 resume.CompletedChunkHashesByPath.TryGetValue(file.RelativePath, out var doneHashes) &&
                 File.Exists(slot.LocalPath))
             {
-                // Diskteki her "tamamlanmış" parçayı hash'iyle yeniden doğrula; bozuk/kurcalanmış
-                // olanı atla (yeniden indirilir) — sessiz bozulmayı engeller.
+                // Dosya kayıttan beri dokunulmadıysa parçalara güven; değiştiyse her "tamamlanmış"
+                // parçayı hash'iyle yeniden doğrula, bozuk/kurcalanmış olanı yeniden indir.
+                bool untouched = resume.Stamps.TryGetValue(file.RelativePath, out FileStamp? stamp) &&
+                                 stamp == FileStamp.Of(slot.LocalPath);
                 foreach ((int index, ulong expectedHash) in doneHashes)
                 {
                     if (index < 0 || index >= slot.TotalChunks) continue;
-                    if (VerifyChunkOnDisk(slot, index, expectedHash) && slot.Done.TryAdd(index, expectedHash))
+                    if ((untouched || VerifyChunkOnDisk(slot, index, expectedHash)) && slot.Done.TryAdd(index, expectedHash))
                         resumedBytes += ChunkLength(file.Size, index);
                 }
             }
@@ -418,6 +421,8 @@ public sealed class ReceiveSession : IDisposable
     /// <summary>Resume için mevcut durumu diske yazar (periyodik ve iptal/hata anında).</summary>
     public void SavePartial(bool autoResume = true)
     {
+        // İptal kararı kalıcı: sonraki periyodik kayıt onu "sormadan devam"a çevirmesin.
+        _autoResume &= autoResume;
         // Başarıyla biten oturum partial dosyayı silmiştir; yarış sonucu yeniden yazma.
         if (_outcome.Task is { IsCompleted: true, Result: null })
             return;
@@ -429,16 +434,17 @@ public sealed class ReceiveSession : IDisposable
                 Signature = PartialState.ComputeSignature(_offer.Files),
                 SenderFingerprint = SenderFingerprint,
                 DestinationRoot = DestinationRoot,
-                AutoResume = autoResume,
+                AutoResume = _autoResume,
                 RootRenames = _rootRenames,
             };
             foreach (FileSlot slot in _slots.Values)
             {
                 lock (slot.Gate)
                 {
-                    if (slot.Done.Count > 0)
-                        state.CompletedChunkHashesByPath[slot.Entry.RelativePath] =
-                            new Dictionary<int, ulong>(slot.Done);
+                    if (slot.Done.Count == 0) continue;
+                    state.CompletedChunkHashesByPath[slot.Entry.RelativePath] = new Dictionary<int, ulong>(slot.Done);
+                    if (FileStamp.Of(slot.LocalPath) is { } stamp)
+                        state.Stamps[slot.Entry.RelativePath] = stamp;
                 }
             }
             state.Save(PartialPath);

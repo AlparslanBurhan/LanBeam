@@ -35,7 +35,7 @@ public static class FileTreeScanner
             if (File.Exists(path))
             {
                 var info = new FileInfo(path);
-                files.Add(new FileEntry(nextId, info.Name, info.Length));
+                files.Add(new FileEntry(nextId, info.Name, info.Length, info.LastWriteTimeUtc.Ticks));
                 localPaths[nextId] = path;
                 nextId++;
             }
@@ -72,7 +72,7 @@ public static class FileTreeScanner
         {
             any = true;
             var info = new FileInfo(file);
-            files.Add(new FileEntry(nextId, $"{relativePrefix}/{info.Name}", info.Length));
+            files.Add(new FileEntry(nextId, $"{relativePrefix}/{info.Name}", info.Length, info.LastWriteTimeUtc.Ticks));
             localPaths[nextId] = file;
             nextId++;
         }

@@ -55,6 +55,8 @@ public sealed class TransferSender
             long bytesBefore = handle.BytesTransferred;
             try
             {
+                if (everAccepted)
+                    EnsureSourcesUnchanged(tree);
                 await AttemptAsync(target(), tree, interaction, handle, attempt, () => everAccepted = true)
                     .ConfigureAwait(false);
                 return;
@@ -94,6 +96,17 @@ public sealed class TransferSender
                 handle.SetState(TransferState.Failed, ex.Message);
                 return;
             }
+        }
+    }
+
+    /// <summary>Devamdan önce: değişen kaynak, alıcıdaki eski parçalarla birleşip bozuk dosya üretmesin.</summary>
+    private static void EnsureSourcesUnchanged(ScannedTree tree)
+    {
+        foreach (FileEntry f in tree.Files)
+        {
+            var info = new FileInfo(tree.LocalPathsByFileId[f.Id]);
+            if (!info.Exists || info.Length != f.Size || info.LastWriteTimeUtc.Ticks != f.Modified)
+                throw new InvalidDataException($"Kaynak dosya transfer sırasında değişti; yeniden gönderin: {f.RelativePath}");
         }
     }
 
