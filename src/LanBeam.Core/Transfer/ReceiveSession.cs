@@ -29,6 +29,8 @@ public sealed class ReceiveSession : IDisposable
     private readonly object _resendGate = new();
     private readonly TaskCompletionSource<string?> _outcome =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly CancellationTokenSource _abort = new();
 
     private int _remainingFiles;
     private int _sentinelsSeen;
@@ -41,28 +43,35 @@ public sealed class ReceiveSession : IDisposable
     public string SenderFingerprint { get; }
     public int StreamCount { get; }
     public TransferHandle Handle { get; }
+    public string PartialPath { get; }
 
     /// <summary>null = başarı, aksi halde hata nedeni.</summary>
     public Task<string?> Completion => _outcome.Task;
+
+    /// <summary>Dosya tutamaçları kapandı; aynı hedefe yeni oturum açılabilir.</summary>
+    public Task Closed => _closed.Task;
 
     /// <summary>Eksik/bozuk parçaların gönderenden yeniden istenmesi gerekiyor.</summary>
     public event Action<List<ChunkRef>>? ResendNeeded;
 
     public ReceiveSession(TransferOffer offer, string destinationRoot, string senderFingerprint,
-        int streamCount, TransferHandle handle)
+        int streamCount, TransferHandle handle, string partialPath)
     {
         _offer = offer;
         DestinationRoot = destinationRoot;
         SenderFingerprint = senderFingerprint;
         StreamCount = streamCount;
         Handle = handle;
+        PartialPath = partialPath;
         _expectedSentinels = streamCount;
 
         Directory.CreateDirectory(destinationRoot);
         foreach (string dir in offer.EmptyDirectories)
             Directory.CreateDirectory(FileTreeScanner.ResolveDestinationPath(destinationRoot, dir));
 
-        PartialState? resume = PartialState.TryLoad(destinationRoot, PartialState.ComputeSignature(offer.Files));
+        PartialState? resume = PartialState.TryLoad(partialPath);
+        if (resume is not null && !IsSameResume(resume))
+            resume = null;
         long resumedBytes = 0;
 
         foreach (FileEntry file in offer.Files)
@@ -99,6 +108,13 @@ public sealed class ReceiveSession : IDisposable
         Handle.TotalBytes = offer.TotalBytes;
         Handle.FileCount = offer.FileCount;
     }
+
+    /// <summary>Kayıt bu içeriğe, bu gönderene ve bu hedef klasöre mi ait?</summary>
+    private bool IsSameResume(PartialState s) =>
+        s.Signature == PartialState.ComputeSignature(_offer.Files) &&
+        string.Equals(s.SenderFingerprint, SenderFingerprint, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(Path.GetFullPath(s.DestinationRoot), Path.GetFullPath(DestinationRoot),
+            StringComparison.OrdinalIgnoreCase);
 
     private static long ChunkLength(long fileSize, int chunkIndex)
     {
@@ -156,8 +172,11 @@ public sealed class ReceiveSession : IDisposable
     }
 
     /// <summary>Bir veri bağlantısını sonuna kadar tüketir. Her akış için ayrı çağrılır.</summary>
-    public async Task RunDataStreamAsync(Stream stream, CancellationToken ct)
+    public async Task RunDataStreamAsync(Stream stream, CancellationToken cancellation)
     {
+        // Oturum bitince (ör. yerini yeni bağlantıya bıraktıysa) ölü soketteki okuma da bırakılsın.
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellation, _abort.Token);
+        CancellationToken ct = linked.Token;
         byte[] header = new byte[DataFraming.HeaderSize];
 
         while (!ct.IsCancellationRequested && !_outcome.Task.IsCompleted)
@@ -244,6 +263,8 @@ public sealed class ReceiveSession : IDisposable
         lock (slot.Gate)
         {
             if (slot.Handle is { } h) return h;
+            // Kapanmış oturum dosyayı yeniden açıp (FileShare.None) yerine geçen oturumu kilitlemesin.
+            if (_closed.Task.IsCompleted) throw new OperationCanceledException();
             Directory.CreateDirectory(Path.GetDirectoryName(slot.LocalPath)!);
             // OpenOrCreate: resume'da mevcut kısmî dosya korunur. Ön tahsis parçalanmayı azaltır.
             SafeFileHandle handle = File.OpenHandle(slot.LocalPath, FileMode.OpenOrCreate,
@@ -335,7 +356,7 @@ public sealed class ReceiveSession : IDisposable
                     File.WriteAllBytes(slot.LocalPath, []);
             }
 
-            PartialState.Delete(DestinationRoot);
+            PartialState.Delete(PartialPath);
             _outcome.TrySetResult(null);
         }
         catch (Exception ex)
@@ -344,14 +365,16 @@ public sealed class ReceiveSession : IDisposable
         }
     }
 
-    public void Fail(string reason)
+    /// <param name="autoResume">false: kullanıcı iptal etti, bir sonraki gönderimde yeniden sorulsun.</param>
+    public void Fail(string reason, bool autoResume = true)
     {
-        SavePartial();
+        SavePartial(autoResume);
         _outcome.TrySetResult(reason);
+        _abort.Cancel();
     }
 
     /// <summary>Resume için mevcut durumu diske yazar (periyodik ve iptal/hata anında).</summary>
-    public void SavePartial()
+    public void SavePartial(bool autoResume = true)
     {
         // Başarıyla biten oturum partial dosyayı silmiştir; yarış sonucu yeniden yazma.
         if (_outcome.Task is { IsCompleted: true, Result: null })
@@ -359,7 +382,13 @@ public sealed class ReceiveSession : IDisposable
 
         try
         {
-            var state = new PartialState { Signature = PartialState.ComputeSignature(_offer.Files) };
+            var state = new PartialState
+            {
+                Signature = PartialState.ComputeSignature(_offer.Files),
+                SenderFingerprint = SenderFingerprint,
+                DestinationRoot = DestinationRoot,
+                AutoResume = autoResume,
+            };
             foreach (FileSlot slot in _slots.Values)
             {
                 lock (slot.Gate)
@@ -370,14 +399,16 @@ public sealed class ReceiveSession : IDisposable
                 }
             }
             if (state.CompletedChunkHashesByPath.Count > 0)
-                state.Save(DestinationRoot);
+                state.Save(PartialPath);
         }
         catch (Exception) { }
     }
 
     public void Dispose()
     {
+        _abort.Cancel();
         foreach (FileSlot slot in _slots.Values)
             CloseSlotHandle(slot);
+        _closed.TrySetResult();
     }
 }

@@ -6,16 +6,22 @@ using LanBeam.Core.Protocol;
 namespace LanBeam.Core.Transfer;
 
 /// <summary>
-/// Yarım kalan transferin durumu. Hedef klasörde ".lanbeam-partial.json" olarak saklanır;
-/// aynı içerik (imza eşleşmesi) aynı hedefe yeniden gönderilirse tamamlanan parçalar atlanır.
-/// Parçalar dosya kimliğiyle değil göreli yolla anahtarlanır — gönderen yeniden taradığında
-/// dosya kimlikleri değişebilir.
+/// Yarım kalan bir alımın durumu. Uygulama veri klasöründe, (gönderen parmak izi + içerik imzası)
+/// başına bir dosya olarak saklanır: aynı gönderen aynı içeriği yeniden gönderirse tamamlanan
+/// parçalar atlanır. Parçalar dosya kimliğiyle değil göreli yolla anahtarlanır — gönderen
+/// yeniden taradığında dosya kimlikleri değişebilir.
 /// </summary>
 public sealed class PartialState
 {
-    public const string FileName = ".lanbeam-partial.json";
-
     public string Signature { get; set; } = "";
+    public string SenderFingerprint { get; set; } = "";
+    public string DestinationRoot { get; set; } = "";
+
+    /// <summary>
+    /// true: bağlantı koptu ya da gönderen duraklattı — aynı içerik geldiğinde sormadan bu klasöre
+    /// devam edilir. false: kullanıcı iptal etti — yeniden sorulur, aynı klasör seçilirse devam edilir.
+    /// </summary>
+    public bool AutoResume { get; set; }
 
     /// <summary>
     /// Göreli yol → (parça indeksi → o parçanın xxHash3'ü). Resume'da diskteki baytlar bu hash'le
@@ -32,14 +38,15 @@ public sealed class PartialState
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sb.ToString())));
     }
 
-    public static PartialState? TryLoad(string destinationRoot, string expectedSignature)
+    public static string PathFor(string directory, string senderFingerprint, string signature) =>
+        Path.Combine(directory, Convert.ToHexString(SHA256.HashData(
+            Encoding.UTF8.GetBytes(senderFingerprint.ToUpperInvariant() + "|" + signature)))[..32] + ".json");
+
+    public static PartialState? TryLoad(string path)
     {
-        string path = Path.Combine(destinationRoot, FileName);
         try
         {
-            if (!File.Exists(path)) return null;
-            var state = JsonSerializer.Deserialize<PartialState>(File.ReadAllText(path));
-            return state?.Signature == expectedSignature ? state : null;
+            return File.Exists(path) ? JsonSerializer.Deserialize<PartialState>(File.ReadAllText(path)) : null;
         }
         catch (Exception)
         {
@@ -47,17 +54,17 @@ public sealed class PartialState
         }
     }
 
-    public void Save(string destinationRoot)
+    public void Save(string path)
     {
-        string path = Path.Combine(destinationRoot, FileName);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         string tmp = path + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(this));
         File.Move(tmp, path, overwrite: true);
     }
 
-    public static void Delete(string destinationRoot)
+    public static void Delete(string path)
     {
-        try { File.Delete(Path.Combine(destinationRoot, FileName)); }
+        try { File.Delete(path); }
         catch (Exception) { }
     }
 }

@@ -16,10 +16,14 @@ public sealed class TransferItemViewModel : ObservableObject
     {
         Handle = handle;
         _lastBytes = handle.BytesTransferred;
-        CancelCommand = new RelayCommand(_ => Handle.Cancel(), _ => !Handle.IsFinished);
+        CancelCommand = new RelayCommand(_ => Handle.Cancel(), _ => Handle.CanCancel);
+        PauseCommand = new RelayCommand(_ => Handle.Pause(), _ => Handle.CanPause);
+        ResumeCommand = new RelayCommand(_ => Handle.Resume(), _ => Handle.CanResume);
     }
 
     public RelayCommand CancelCommand { get; }
+    public RelayCommand PauseCommand { get; }
+    public RelayCommand ResumeCommand { get; }
 
     public string Title => Handle.DisplayName;
     public string DirectionArrow => Handle.Direction == TransferDirection.Send ? "↑" : "↓";
@@ -41,7 +45,9 @@ public sealed class TransferItemViewModel : ObservableObject
         ? Loc.Format("Str_RemainingFormat",
             Format.Eta(Handle.TotalBytes - Handle.BytesTransferred, _speedBytesPerSec)) : "";
 
-    public bool IsActive => !Handle.IsFinished;
+    public bool IsActive => Handle.CanCancel;
+    public bool CanPause => Handle.CanPause;
+    public bool CanResume => Handle.CanResume;
 
     public string StateText => Handle.State switch
     {
@@ -50,6 +56,10 @@ public sealed class TransferItemViewModel : ObservableObject
         TransferState.WaitingApproval => Loc.Get("Str_StateWaitingApproval"),
         TransferState.Transferring => Loc.Get("Str_StateTransferring"),
         TransferState.Verifying => Loc.Get("Str_StateVerifying"),
+        TransferState.Reconnecting => Loc.Format("Str_StateReconnectingFormat", Handle.FailureReason ?? ""),
+        TransferState.Paused when Handle.Direction == TransferDirection.Receive => Loc.Get("Str_StatePeerPaused"),
+        TransferState.Paused => Handle.FailureReason is { } reason
+            ? Loc.Format("Str_StatePausedFormat", reason) : Loc.Get("Str_StatePaused"),
         TransferState.Completed => Loc.Get("Str_StateCompleted"),
         TransferState.Rejected => Loc.Get("Str_StateRejected"),
         TransferState.Cancelled => Loc.Get("Str_StateCancelled"),
@@ -78,5 +88,7 @@ public sealed class TransferItemViewModel : ObservableObject
         OnPropertyChanged(nameof(EtaText));
         OnPropertyChanged(nameof(StateText));
         OnPropertyChanged(nameof(IsActive));
+        OnPropertyChanged(nameof(CanPause));
+        OnPropertyChanged(nameof(CanResume));
     }
 }

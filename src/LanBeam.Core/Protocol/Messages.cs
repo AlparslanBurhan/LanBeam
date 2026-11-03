@@ -21,6 +21,8 @@ public static class MessageTypes
     public const string Resend = "resend";
     public const string Complete = "complete";
     public const string Cancel = "cancel";
+    /// <summary>Gönderen duraklattı: alıcı oturumu kapatır ama sormadan devam edilebilir kaydı tutar.</summary>
+    public const string Pause = "pause";
     public const string Error = "error";
 }
 

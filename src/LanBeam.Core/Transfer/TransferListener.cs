@@ -20,6 +20,7 @@ public sealed class TransferListener : IDisposable
     private readonly string _deviceId;
     private readonly Func<string> _deviceName;
     private readonly Func<int> _defaultStreamCount;
+    private readonly string _partialsDirectory;
 
     /// <summary>Kendi avatarımız: (etiket, özel fotoğraf PNG'si ya da null). UI/Node tarafından atanır.</summary>
     public Func<(string Tag, byte[]? Png)>? AvatarProvider { get; set; }
@@ -45,8 +46,10 @@ public sealed class TransferListener : IDisposable
     public event Action<TransferHandle>? TransferStarted;
 
     public TransferListener(X509Certificate2 certificate, string ownFingerprint,
-        TrustedDeviceStore trust, string deviceId, Func<string> deviceName, Func<int> defaultStreamCount)
+        TrustedDeviceStore trust, string deviceId, Func<string> deviceName, Func<int> defaultStreamCount,
+        string partialsDirectory)
     {
+        _partialsDirectory = partialsDirectory;
         _certificate = certificate;
         _ownFingerprint = ownFingerprint;
         _trust = trust;
@@ -306,33 +309,51 @@ public sealed class TransferListener : IDisposable
     private async Task HandleOfferAsync(JsonChannel channel, HelloMessage hello, string peerFp,
         TransferOffer offer, CancellationToken ct)
     {
-        var incoming = new IncomingOffer
-        {
-            Offer = offer,
-            SenderName = hello.DeviceName,
-            SenderDeviceId = hello.DeviceId,
-            SenderFingerprint = peerFp,
-        };
-        OfferReceived?.Invoke(incoming);
+        string partialPath = PartialState.PathFor(_partialsDirectory, peerFp, PartialState.ComputeSignature(offer.Files));
 
-        // Kullanıcı karar verirken gönderenin vazgeçmesini de dinle.
-        Task<ReceivedMessage?> readTask = channel.ReceiveAsync(ct);
-        Task<string?> decisionTask = incoming.Decision;
-
-        Task first = await Task.WhenAny(decisionTask, readTask).ConfigureAwait(false);
-        if (first == readTask)
+        // Gönderen yeniden bağlandıysa eski oturum ölü soketi bekliyor olabilir: kapat, dosyaları bıraksın.
+        foreach (ReceiveSession old in _sessions.Values.Where(s => s.PartialPath == partialPath).ToList())
         {
-            // EOF ya da cancel: gönderen vazgeçti.
-            incoming.MarkRevoked();
-            return;
+            old.Fail("Bağlantı koptu.");
+            await old.Closed.WaitAsync(TimeSpan.FromSeconds(10), ct).ConfigureAwait(false);
         }
 
-        string? destination = await decisionTask.ConfigureAwait(false);
-        if (destination is null)
+        // Gönderenin vazgeçmesini de dinle (okuyucu tek olmalı; oturum bu okumadan devam eder).
+        Task<ReceivedMessage?> readTask = channel.ReceiveAsync(ct);
+        string? destination;
+
+        if (PartialState.TryLoad(partialPath) is { AutoResume: true } previous &&
+            Directory.Exists(previous.DestinationRoot))
         {
-            await channel.SendAsync(MessageTypes.Reject,
-                new RejectMessage("Alıcı transferi reddetti."), ct).ConfigureAwait(false);
-            return;
+            // Kopan/duraklatılan bu içeriği kullanıcı bu klasöre zaten kabul etmişti: sormadan devam.
+            destination = previous.DestinationRoot;
+        }
+        else
+        {
+            var incoming = new IncomingOffer
+            {
+                Offer = offer,
+                SenderName = hello.DeviceName,
+                SenderDeviceId = hello.DeviceId,
+                SenderFingerprint = peerFp,
+            };
+            OfferReceived?.Invoke(incoming);
+
+            Task first = await Task.WhenAny(incoming.Decision, readTask).ConfigureAwait(false);
+            if (first == readTask)
+            {
+                // EOF ya da cancel: gönderen vazgeçti.
+                incoming.MarkRevoked();
+                return;
+            }
+
+            destination = await incoming.Decision.ConfigureAwait(false);
+            if (destination is null)
+            {
+                await channel.SendAsync(MessageTypes.Reject,
+                    new RejectMessage("Alıcı transferi reddetti."), ct).ConfigureAwait(false);
+                return;
+            }
         }
 
         // Kötü niyetli/hatalı teklif doğrulaması: yinelenen fileId, negatif boyut, disk boş alanı.
@@ -349,10 +370,11 @@ public sealed class TransferListener : IDisposable
             Direction = TransferDirection.Receive,
             DisplayName = offer.DisplayName,
             PeerName = hello.DeviceName,
+            ContentKey = partialPath,
         };
 
         int streamCount = Math.Clamp(_defaultStreamCount(), 1, 8);
-        using var session = new ReceiveSession(offer, destination, peerFp, streamCount, handle);
+        using var session = new ReceiveSession(offer, destination, peerFp, streamCount, handle, partialPath);
         if (!_sessions.TryAdd(session.SessionId, session))
             throw new InvalidOperationException("Oturum kimliği çakışması.");
 
@@ -387,7 +409,12 @@ public sealed class TransferListener : IDisposable
                         await channel.SendAsync(MessageTypes.Progress,
                             new ProgressMessage(handle.BytesTransferred), sessionCts.Token).ConfigureAwait(false);
                     }
-                    catch (Exception) { break; }
+                    catch (Exception)
+                    {
+                        // Gönderen uyudu/koptu: veri okuması TCP zaman aşımını beklemesin.
+                        if (!sessionCts.Token.IsCancellationRequested) session.Fail("Bağlantı koptu.");
+                        break;
+                    }
 
                     handle.NotifyProgress();
                     if (++tick % 6 == 0)
@@ -395,8 +422,8 @@ public sealed class TransferListener : IDisposable
                 }
             });
 
-            // Gönderenden gelen mesajları dinle (iptal/hata) — okuyucu tek olmalı,
-            // bekleyen readTask'ten devam et.
+            // Gönderenden gelen mesajları dinle (iptal/duraklatma/hata), bekleyen readTask'ten devam et.
+            TransferState endState = TransferState.Failed;
             Task controlLoop = Task.Run(async () =>
             {
                 Task<ReceivedMessage?> pending = readTask;
@@ -404,11 +431,25 @@ public sealed class TransferListener : IDisposable
                 {
                     ReceivedMessage? msg;
                     try { msg = await pending.ConfigureAwait(false); }
-                    catch (Exception) { session.Fail("Bağlantı koptu."); break; }
+                    catch (Exception) { session.Fail("Bağlantı koptu."); return; }
 
-                    if (msg is null) { session.Fail("Bağlantı koptu."); break; }
-                    if (msg.Type == MessageTypes.Cancel) { session.Fail("Gönderen transferi iptal etti."); break; }
-                    if (msg.Type == MessageTypes.Error) { session.Fail(msg.As<ErrorMessage>().Message); break; }
+                    switch (msg?.Type)
+                    {
+                        case null:
+                            session.Fail("Bağlantı koptu.");
+                            return;
+                        case MessageTypes.Pause:
+                            endState = TransferState.Paused;
+                            session.Fail("Gönderen duraklattı.");
+                            return;
+                        case MessageTypes.Cancel:
+                            endState = TransferState.Cancelled;
+                            session.Fail("Gönderen transferi iptal etti.", autoResume: false);
+                            return;
+                        case MessageTypes.Error:
+                            session.Fail(msg.As<ErrorMessage>().Message);
+                            return;
+                    }
 
                     pending = channel.ReceiveAsync(sessionCts.Token);
                 }
@@ -420,7 +461,7 @@ public sealed class TransferListener : IDisposable
 
             if (finished == cancelledTask && handle.CancellationToken.IsCancellationRequested)
             {
-                session.SavePartial();
+                session.Fail("Transfer iptal edildi.", autoResume: false);
                 try
                 {
                     using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
@@ -438,11 +479,21 @@ public sealed class TransferListener : IDisposable
                     new ProgressMessage(handle.BytesTransferred), ct).ConfigureAwait(false);
                 await channel.SendAsync(MessageTypes.Complete, ct).ConfigureAwait(false);
                 handle.SetState(TransferState.Completed);
+                return;
             }
-            else
+
+            if (endState == TransferState.Failed)
             {
-                handle.SetState(TransferState.Failed, failure);
+                // Yerel hata (ör. disk dolu) ise gönderen boşuna yeniden denemesin, nedeni görsün.
+                try
+                {
+                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                    await channel.SendAsync(MessageTypes.Error, new ErrorMessage(failure), timeout.Token)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception) { }
             }
+            handle.SetState(endState, failure);
         }
         finally
         {

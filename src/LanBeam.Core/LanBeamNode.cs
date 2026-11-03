@@ -28,6 +28,9 @@ public sealed class LanBeamNode : IDisposable
     private byte[]? _customAvatarPng;
     private readonly X509Certificate2 _certificate;
     private readonly TransferSender _sender;
+    private readonly KeepAwake _keepAwake = new();
+    private readonly HashSet<TransferHandle> _busy = [];
+    private readonly List<(TransferHandle Handle, string DeviceId, string[] Paths)> _sends = [];
 
     /// <summary>Yeni bir transfer (gönderim ya da alım) başladı; UI listesine eklenmeli.</summary>
     public event Action<TransferHandle>? TransferAdded;
@@ -48,11 +51,12 @@ public sealed class LanBeamNode : IDisposable
             s.TcpPort, s.UdpPort, s.MulticastAddress, CertFingerprint, () => AvatarTag);
 
         Listener = new TransferListener(_certificate, CertFingerprint, TrustedDevices,
-            s.DeviceId, () => Settings.Current.DeviceName, () => Settings.Current.StreamCount)
+            s.DeviceId, () => Settings.Current.DeviceName, () => Settings.Current.StreamCount,
+            Path.Combine(Settings.DataDirectory, "partials"))
         {
             AvatarProvider = () => (AvatarTag, _customAvatarPng),
         };
-        Listener.TransferStarted += h => TransferAdded?.Invoke(h);
+        Listener.TransferStarted += Track;
 
         _sender = new TransferSender(_certificate, CertFingerprint, TrustedDevices,
             s.DeviceId, () => Settings.Current.DeviceName);
@@ -102,6 +106,16 @@ public sealed class LanBeamNode : IDisposable
     /// </summary>
     public TransferHandle Send(DeviceInfo target, IReadOnlyList<string> paths, ISendInteraction interaction)
     {
+        // Aynı içerik aynı cihaza zaten gidiyorsa ikinci kopya açma: iki gönderim alıcıda
+        // birbirinin oturumunu kapatıp durur.
+        lock (_sends)
+        {
+            _sends.RemoveAll(x => x.Handle.IsFinished);
+            foreach ((TransferHandle active, string deviceId, string[] activePaths) in _sends)
+                if (deviceId == target.DeviceId && activePaths.SequenceEqual(paths))
+                    return active;
+        }
+
         var handle = new TransferHandle
         {
             Direction = TransferDirection.Send,
@@ -109,7 +123,8 @@ public sealed class LanBeamNode : IDisposable
                           + (paths.Count > 1 ? $" (+{paths.Count - 1})" : ""),
             PeerName = target.Name,
         };
-        TransferAdded?.Invoke(handle);
+        lock (_sends) _sends.Add((handle, target.DeviceId, paths.ToArray()));
+        Track(handle);
 
         _ = Task.Run(async () =>
         {
@@ -126,14 +141,34 @@ public sealed class LanBeamNode : IDisposable
                 return;
             }
 
-            await _sender.RunAsync(target, tree, interaction, handle).ConfigureAwait(false);
+            DeviceInfo Current() => Discovery.Devices.FirstOrDefault(d => d.DeviceId == target.DeviceId) ?? target;
+            await _sender.RunAsync(Current, tree, interaction, handle).ConfigureAwait(false);
         });
 
         return handle;
     }
 
+    private void Track(TransferHandle handle)
+    {
+        handle.Changed += UpdateKeepAwake;
+        UpdateKeepAwake(handle);
+        TransferAdded?.Invoke(handle);
+    }
+
+    /// <summary>Herhangi bir yönde aktif transfer varken uyku engellenir (alıcı uyusa da transfer kopar).</summary>
+    private void UpdateKeepAwake(TransferHandle handle)
+    {
+        lock (_busy)
+        {
+            bool changed = handle.IsBusy ? _busy.Add(handle) : _busy.Remove(handle);
+            if (changed && _busy.Count <= 1)
+                _keepAwake.Set(_busy.Count == 1);
+        }
+    }
+
     public void Dispose()
     {
+        _keepAwake.Dispose();
         Discovery.Dispose();
         Listener.Dispose();
         _certificate.Dispose();

@@ -69,6 +69,14 @@
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ui:Button Content="{DynamicResource Str_Pause}" Appearance="Secondary"
+                                                   Icon="{ui:SymbolIcon Pause24}" Margin="0,0,6,0"
+                                                   Command="{Binding PauseCommand}"
+                                                   Visibility="{Binding CanPause, Converter={StaticResource BoolToVis}}" />
+                                        <ui:Button Content="{DynamicResource Str_Resume}" Appearance="Primary"
+                                                   Icon="{ui:SymbolIcon Play24}" Margin="0,0,6,0"
+                                                   Command="{Binding ResumeCommand}"
+                                                   Visibility="{Binding CanResume, Converter={StaticResource BoolToVis}}" />
                                         <ui:Button Content="{DynamicResource Str_Cancel}" Appearance="Secondary"
                                                    Icon="{ui:SymbolIcon Dismiss24}"
                                                    Command="{Binding CancelCommand}"

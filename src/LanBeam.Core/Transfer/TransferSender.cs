@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
 using LanBeam.Core.Models;
@@ -30,10 +31,78 @@ public sealed class TransferSender
         _deviceName = deviceName;
     }
 
-    public async Task RunAsync(DeviceInfo target, ScannedTree tree, ISendInteraction interaction,
+    private const int MaxReconnectAttempts = 6;
+    private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(10);
+
+    /// <summary>Alıcı 500 ms'de bir ilerleme yollar; bu kadar sessizlik uyuyan/kopan karşı taraf demektir.</summary>
+    private static readonly TimeSpan PeerSilenceTimeout = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Gönderimin tüm ömrü. Alıcı kabul ettikten sonra bağlantı koparsa kendiliğinden yeniden
+    /// bağlanır; alıcı tamamlanan parçaları bildirdiği için kalan kısımdan devam edilir. Duraklatma
+    /// da aynı yolu kullanır: bağlantılar kapanır, Resume() ile yeni bağlantı kurulur.
+    /// </summary>
+    /// <param name="target">Her denemede güncel adres (DHCP ile IP değişmiş olabilir).</param>
+    public async Task RunAsync(Func<DeviceInfo> target, ScannedTree tree, ISendInteraction interaction,
         TransferHandle handle)
     {
-        CancellationToken ct = handle.CancellationToken;
+        bool everAccepted = false;
+        int failures = 0;
+
+        while (true)
+        {
+            CancellationToken attempt = handle.BeginAttempt();
+            long bytesBefore = handle.BytesTransferred;
+            try
+            {
+                await AttemptAsync(target(), tree, interaction, handle, attempt, () => everAccepted = true)
+                    .ConfigureAwait(false);
+                return;
+            }
+            catch (OperationCanceledException) when (handle.CancellationToken.IsCancellationRequested)
+            {
+                handle.SetState(TransferState.Cancelled, "Transfer iptal edildi.");
+                return;
+            }
+            catch (Exception ex) when (attempt.IsCancellationRequested || (everAccepted && IsTransient(ex)))
+            {
+                if (handle.BytesTransferred > bytesBefore)
+                    failures = 0; // ilerleme oldu: ara sıra kopan uzun transfer sınırı tüketmesin
+                try
+                {
+                    if (attempt.IsCancellationRequested) // Pause()
+                        await handle.PauseUntilResumedAsync(null).ConfigureAwait(false);
+                    else if (++failures > MaxReconnectAttempts)
+                        await handle.PauseUntilResumedAsync(ex.Message).ConfigureAwait(false);
+                    else
+                    {
+                        handle.SetState(TransferState.Reconnecting, ex.Message);
+                        await Task.Delay(TimeSpan.FromSeconds(Math.Min(30, 1 << failures)), handle.CancellationToken)
+                            .ConfigureAwait(false);
+                        continue;
+                    }
+                    failures = 0;
+                }
+                catch (OperationCanceledException)
+                {
+                    handle.SetState(TransferState.Cancelled, "Transfer iptal edildi.");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                handle.SetState(TransferState.Failed, ex.Message);
+                return;
+            }
+        }
+    }
+
+    private static bool IsTransient(Exception ex) =>
+        ex is IOException or SocketException or TimeoutException or AuthenticationException;
+
+    private async Task AttemptAsync(DeviceInfo target, ScannedTree tree, ISendInteraction interaction,
+        TransferHandle handle, CancellationToken ct, Action onAccepted)
+    {
         var dataStreams = new List<SslStream>();
         JsonChannel? channel = null;
 
@@ -50,6 +119,8 @@ public sealed class TransferSender
                 .ConfigureAwait(false);
 
             ReceivedMessage ack = await ReceiveOrThrowAsync(channel, ct).ConfigureAwait(false);
+            if (ack.Type == MessageTypes.Error)
+                throw new InvalidOperationException(ack.As<ErrorMessage>().Message);
             if (ack.Type != MessageTypes.HelloAck)
                 throw new InvalidDataException($"Beklenmeyen yanıt: {ack.Type}");
             HelloAckMessage ackBody = ack.As<HelloAckMessage>();
@@ -71,15 +142,13 @@ public sealed class TransferSender
             {
                 // Alıcı challenge gönderecek.
                 handle.SetState(TransferState.Pairing);
-                await RunSenderPairingAsync(channel, peerFp, ackBody, interaction, handle, ct)
-                    .ConfigureAwait(false);
+                await RunSenderPairingAsync(channel, peerFp, ackBody, interaction, ct).ConfigureAwait(false);
             }
             else if (!weTrustThem)
             {
                 handle.SetState(TransferState.Pairing);
                 await channel.SendAsync(MessageTypes.PairingRequired, ct).ConfigureAwait(false);
-                await RunSenderPairingAsync(channel, peerFp, ackBody, interaction, handle, ct)
-                    .ConfigureAwait(false);
+                await RunSenderPairingAsync(channel, peerFp, ackBody, interaction, ct).ConfigureAwait(false);
             }
 
             // Teklif
@@ -104,6 +173,7 @@ public sealed class TransferSender
 
             AcceptMessage accept = decision.As<AcceptMessage>();
             int streamCount = Math.Clamp(accept.StreamCount, 1, 8);
+            onAccepted();
 
             // Resume: alıcının elindeki parçaları atla.
             Dictionary<int, HashSet<int>>? completed = accept.CompletedChunks?
@@ -140,12 +210,30 @@ public sealed class TransferSender
                     handlesResend ? resendChannel.Reader : null, ct), ct));
             }
 
-            // Kontrol döngüsü: ilerleme/yeniden gönderim/sonuç mesajları
+            // Kontrol döngüsü: ilerleme/yeniden gönderim/sonuç mesajları. Bir akış hata verirse
+            // (ör. kaynak dosya değişti) alıcı onun bitiş işaretini sonsuza dek bekler; bu yüzden
+            // akışlar da izlenir ve ilk hata transferi sonlandırır.
+            Task allWorkers = Task.WhenAll(workers);
+            Task<ReceivedMessage?> pending = channel.ReceiveAsync(ct);
             while (true)
             {
-                ReceivedMessage? msg = await channel.ReceiveAsync(ct).ConfigureAwait(false);
-                if (msg is null)
-                    throw new IOException("Bağlantı beklenmedik şekilde kapandı.");
+                Task<ReceivedMessage?> next = pending.WaitAsync(PeerSilenceTimeout, ct);
+                if (!allWorkers.IsCompleted)
+                    await Task.WhenAny(next, allWorkers).ConfigureAwait(false);
+                if (allWorkers.IsCompleted && !allWorkers.IsCompletedSuccessfully)
+                    await allWorkers.ConfigureAwait(false);
+
+                ReceivedMessage msg;
+                try
+                {
+                    msg = await next.ConfigureAwait(false)
+                          ?? throw new IOException("Bağlantı beklenmedik şekilde kapandı.");
+                }
+                catch (TimeoutException)
+                {
+                    throw new TimeoutException("Alıcı yanıt vermiyor (uyku ya da ağ kopması).");
+                }
+                pending = channel.ReceiveAsync(ct);
 
                 switch (msg.Type)
                 {
@@ -161,7 +249,7 @@ public sealed class TransferSender
 
                     case MessageTypes.Complete:
                         resendChannel.Writer.TryComplete();
-                        await Task.WhenAll(workers).ConfigureAwait(false);
+                        await allWorkers.ConfigureAwait(false);
                         handle.SetBytes(tree.TotalBytes);
                         handle.SetState(TransferState.Completed);
                         return;
@@ -171,26 +259,24 @@ public sealed class TransferSender
                         return;
 
                     case MessageTypes.Error:
-                        throw new IOException(msg.As<ErrorMessage>().Message);
+                        // Alıcının kendi hatası (ör. disk dolu): yeniden denemek çözmez.
+                        throw new InvalidOperationException(msg.As<ErrorMessage>().Message);
                 }
             }
         }
-        catch (OperationCanceledException) when (handle.CancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             if (channel is not null)
             {
                 try
                 {
                     using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                    await channel.SendAsync(MessageTypes.Cancel, timeout.Token).ConfigureAwait(false);
+                    await channel.SendAsync(handle.CancellationToken.IsCancellationRequested
+                        ? MessageTypes.Cancel : MessageTypes.Pause, timeout.Token).ConfigureAwait(false);
                 }
                 catch (Exception) { }
             }
-            handle.SetState(TransferState.Cancelled, "Transfer iptal edildi.");
-        }
-        catch (Exception ex)
-        {
-            handle.SetState(TransferState.Failed, ex.Message);
+            throw;
         }
         finally
         {
@@ -230,11 +316,20 @@ public sealed class TransferSender
     private async Task<(SslStream, string)> ConnectAsync(string address, int port, CancellationToken ct)
     {
         var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        // Uyuyan/kapalı cihaza bağlanma işletim sisteminin dakikalara varan varsayılanını beklemesin.
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(ConnectTimeout);
         try
         {
             TlsHelper.TuneSocket(socket);
-            await socket.ConnectAsync(new IPEndPoint(IPAddress.Parse(address), port), ct).ConfigureAwait(false);
-            return await TlsHelper.AuthenticateAsClientAsync(socket, _certificate, ct).ConfigureAwait(false);
+            await socket.ConnectAsync(new IPEndPoint(IPAddress.Parse(address), port), timeout.Token)
+                .ConfigureAwait(false);
+            return await TlsHelper.AuthenticateAsClientAsync(socket, _certificate, timeout.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            socket.Dispose();
+            throw new TimeoutException("Karşı cihaza bağlanılamadı (zaman aşımı).");
         }
         catch
         {
@@ -244,7 +339,7 @@ public sealed class TransferSender
     }
 
     private async Task RunSenderPairingAsync(JsonChannel channel, string peerFp, HelloAckMessage peer,
-        ISendInteraction interaction, TransferHandle handle, CancellationToken ct)
+        ISendInteraction interaction, CancellationToken ct)
     {
         string? pin = null;
         byte[]? lastSenderNonce = null;
@@ -353,7 +448,7 @@ public sealed class TransferSender
             {
                 int read = RandomAccess.Read(currentHandle!, buffer.AsSpan(total, length - total), offset + total);
                 if (read == 0)
-                    throw new IOException($"Dosya beklenenden kısa (transfer sırasında değişmiş olabilir): " +
+                    throw new InvalidDataException($"Dosya beklenenden kısa (transfer sırasında değişmiş olabilir): " +
                         $"{tree.LocalPathsByFileId[fileId]}");
                 total += read;
             }

@@ -39,6 +39,10 @@
                                         </StackPanel>
                                     </StackPanel>
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                                        <Button Content="{DynamicResource Str_Pause}" Command="{Binding PauseCommand}"
+                                                IsVisible="{Binding CanPause}" />
+                                        <Button Content="{DynamicResource Str_Resume}" Command="{Binding ResumeCommand}"
+                                                IsVisible="{Binding CanResume}" Classes="accent" />
                                         <Button Content="{DynamicResource Str_Cancel}" Command="{Binding CancelCommand}"
                                                 IsVisible="{Binding IsActive}" />
                                         <Button Content="✕" ToolTip.Tip="{DynamicResource Str_RemoveFromList}"

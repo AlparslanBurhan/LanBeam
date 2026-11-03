@@ -69,6 +69,12 @@ public static class Loc
         ["Str_StateRejected"] = ("Reddedildi", "Rejected"),
         ["Str_StateCancelled"] = ("İptal edildi", "Cancelled"),
         ["Str_StateFailedFormat"] = ("Hata: {0}", "Error: {0}"),
+        ["Str_Pause"] = ("Duraklat", "Pause"),
+        ["Str_Resume"] = ("Devam et", "Resume"),
+        ["Str_StateReconnectingFormat"] = ("Bağlantı koptu, yeniden bağlanılıyor… ({0})", "Connection lost, reconnecting… ({0})"),
+        ["Str_StatePaused"] = ("Duraklatıldı", "Paused"),
+        ["Str_StatePausedFormat"] = ("Duraklatıldı: {0}", "Paused: {0}"),
+        ["Str_StatePeerPaused"] = ("Gönderen duraklattı; devam edince kaldığı yerden sürer", "Paused by sender; continues where it left off"),
         ["Str_Unknown"] = ("bilinmiyor", "unknown"),
 
         ["Str_SettingsTitle"] = ("Ayarlar", "Settings"),
