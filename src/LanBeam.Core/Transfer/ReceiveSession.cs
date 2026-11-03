@@ -32,6 +32,7 @@ public sealed class ReceiveSession : IDisposable
     private readonly TaskCompletionSource _closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly CancellationTokenSource _abort = new();
 
+    private readonly Dictionary<string, string> _rootRenames;
     private int _remainingFiles;
     private int _sentinelsSeen;
     private int _expectedSentinels;
@@ -44,6 +45,9 @@ public sealed class ReceiveSession : IDisposable
     public int StreamCount { get; }
     public TransferHandle Handle { get; }
     public string PartialPath { get; }
+
+    /// <summary>Henüz diskte yer kaplamayan bayt sayısı (devamda önceden ayrılmış dosyalar düşülür).</summary>
+    public long BytesNeededOnDisk { get; }
 
     /// <summary>null = başarı, aksi halde hata nedeni.</summary>
     public Task<string?> Completion => _outcome.Task;
@@ -66,12 +70,13 @@ public sealed class ReceiveSession : IDisposable
         _expectedSentinels = streamCount;
 
         Directory.CreateDirectory(destinationRoot);
-        foreach (string dir in offer.EmptyDirectories)
-            Directory.CreateDirectory(FileTreeScanner.ResolveDestinationPath(destinationRoot, dir));
 
         PartialState? resume = PartialState.TryLoad(partialPath);
         if (resume is not null && !IsSameResume(resume))
             resume = null;
+        // Yeni transfer hedefteki aynı adlı dosya/klasörü ezmesin; devamda eski eşleme korunur.
+        _rootRenames = resume?.RootRenames ?? PickRootRenames(destinationRoot,
+            offer.Files.Select(f => f.RelativePath).Concat(offer.EmptyDirectories).Select(TopLevel).ToHashSet());
         long resumedBytes = 0;
 
         foreach (FileEntry file in offer.Files)
@@ -79,7 +84,7 @@ public sealed class ReceiveSession : IDisposable
             var slot = new FileSlot
             {
                 Entry = file,
-                LocalPath = FileTreeScanner.ResolveDestinationPath(destinationRoot, file.RelativePath),
+                LocalPath = FileTreeScanner.ResolveDestinationPath(destinationRoot, MapPath(file.RelativePath)),
                 TotalChunks = ChunkPlanner.TotalChunkCount(file.Size),
             };
 
@@ -101,12 +106,46 @@ public sealed class ReceiveSession : IDisposable
                 slot.Counted = true;
 
             _slots[file.Id] = slot;
+            if (File.Exists(slot.LocalPath))
+                BytesNeededOnDisk -= Math.Min(new FileInfo(slot.LocalPath).Length, file.Size);
         }
+        BytesNeededOnDisk += offer.TotalBytes;
 
         _remainingFiles = _slots.Values.Count(s => s.TotalChunks > 0 && !s.Counted);
         Handle.SetBytes(resumedBytes);
         Handle.TotalBytes = offer.TotalBytes;
         Handle.FileCount = offer.FileCount;
+    }
+
+    private static string TopLevel(string relativePath) =>
+        relativePath.IndexOf('/') is var i and >= 0 ? relativePath[..i] : relativePath;
+
+    private string MapPath(string relativePath)
+    {
+        string top = TopLevel(relativePath);
+        return _rootRenames.TryGetValue(top, out string? renamed) ? renamed + relativePath[top.Length..] : relativePath;
+    }
+
+    /// <summary>Hedefte zaten olan kök öğelere Windows Gezgini gibi "ad (2).uzantı" verir.</summary>
+    private static Dictionary<string, string> PickRootRenames(string root, HashSet<string> topLevels)
+    {
+        var renames = new Dictionary<string, string>();
+        foreach (string name in topLevels.Where(Taken))
+        {
+            string stem = Path.GetFileNameWithoutExtension(name), ext = Path.GetExtension(name);
+            for (int n = 2; ; n++)
+            {
+                string candidate = $"{stem} ({n}){ext}";
+                if (!Taken(candidate) && !topLevels.Contains(candidate) && !renames.ContainsValue(candidate))
+                {
+                    renames[name] = candidate;
+                    break;
+                }
+            }
+        }
+        return renames;
+
+        bool Taken(string n) => File.Exists(Path.Combine(root, n)) || Directory.Exists(Path.Combine(root, n));
     }
 
     /// <summary>Kayıt bu içeriğe, bu gönderene ve bu hedef klasöre mi ait?</summary>
@@ -348,6 +387,9 @@ public sealed class ReceiveSession : IDisposable
 
         try
         {
+            foreach (string dir in _offer.EmptyDirectories)
+                Directory.CreateDirectory(FileTreeScanner.ResolveDestinationPath(DestinationRoot, MapPath(dir)));
+
             // Sıfır boyutlu dosyaları oluştur.
             foreach (FileSlot slot in _slots.Values.Where(s => s.Entry.Size == 0))
             {
@@ -388,6 +430,7 @@ public sealed class ReceiveSession : IDisposable
                 SenderFingerprint = SenderFingerprint,
                 DestinationRoot = DestinationRoot,
                 AutoResume = autoResume,
+                RootRenames = _rootRenames,
             };
             foreach (FileSlot slot in _slots.Values)
             {
@@ -398,8 +441,7 @@ public sealed class ReceiveSession : IDisposable
                             new Dictionary<int, ulong>(slot.Done);
                 }
             }
-            if (state.CompletedChunkHashesByPath.Count > 0)
-                state.Save(PartialPath);
+            state.Save(PartialPath);
         }
         catch (Exception) { }
     }

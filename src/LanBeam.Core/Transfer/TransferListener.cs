@@ -356,12 +356,10 @@ public sealed class TransferListener : IDisposable
             }
         }
 
-        // Kötü niyetli/hatalı teklif doğrulaması: yinelenen fileId, negatif boyut, disk boş alanı.
-        string? validationError = ValidateOffer(offer, destination);
-        if (validationError is not null)
+        // Kötü niyetli/hatalı teklif doğrulaması: yinelenen fileId, negatif boyut, güvensiz yol.
+        if (ValidateOffer(offer, destination) is { } invalid)
         {
-            await channel.SendAsync(MessageTypes.Reject, new RejectMessage(validationError), ct)
-                .ConfigureAwait(false);
+            await channel.SendAsync(MessageTypes.Reject, new RejectMessage(invalid), ct).ConfigureAwait(false);
             return;
         }
 
@@ -375,6 +373,11 @@ public sealed class TransferListener : IDisposable
 
         int streamCount = Math.Clamp(_defaultStreamCount(), 1, 8);
         using var session = new ReceiveSession(offer, destination, peerFp, streamCount, handle, partialPath);
+        if (CheckFreeSpace(destination, session.BytesNeededOnDisk) is { } noSpace)
+        {
+            await channel.SendAsync(MessageTypes.Reject, new RejectMessage(noSpace), ct).ConfigureAwait(false);
+            return;
+        }
         if (!_sessions.TryAdd(session.SessionId, session))
             throw new InvalidOperationException("Oturum kimliği çakışması.");
 
@@ -387,6 +390,7 @@ public sealed class TransferListener : IDisposable
 
             handle.SetState(TransferState.Transferring);
             TransferStarted?.Invoke(handle);
+            session.SavePartial(); // ilk parçadan önce kopsa da hedef klasör ve ad eşlemesi hatırlansın
 
             await channel.SendAsync(MessageTypes.Accept, new AcceptMessage(
                 session.SessionId, session.DataToken, streamCount,
@@ -514,7 +518,23 @@ public sealed class TransferListener : IDisposable
         if (offer.Files.Select(f => f.Id).Distinct().Count() != offer.Files.Count)
             return "Teklifte yinelenen dosya kimliği var.";
 
-        // Hedef diskte yeterli boş alan var mı? (Devasa boyut bildirip diski doldurmayı engeller.)
+        // Yol hatası transfer ortasında değil, baştan anlaşılır bir nedenle reddedilsin.
+        try
+        {
+            foreach (string path in offer.Files.Select(f => f.RelativePath).Concat(offer.EmptyDirectories))
+                FileTreeScanner.ResolveDestinationPath(destination, path);
+        }
+        catch (InvalidDataException ex)
+        {
+            return ex.Message;
+        }
+
+        return null;
+    }
+
+    /// <summary>Hedef diskte yeterli boş alan var mı? (Devasa boyut bildirip diski doldurmayı engeller.)</summary>
+    private static string? CheckFreeSpace(string destination, long needed)
+    {
         try
         {
             string? root = Path.GetPathRoot(Path.GetFullPath(destination));
@@ -522,15 +542,14 @@ public sealed class TransferListener : IDisposable
             {
                 long free = new DriveInfo(root).AvailableFreeSpace;
                 // %2 pay bırak.
-                if (offer.TotalBytes > free - free / 50)
-                    return $"Hedef diskte yeterli alan yok ({offer.TotalBytes / (1024 * 1024)} MB gerekli).";
+                if (needed > free - free / 50)
+                    return $"Hedef diskte yeterli alan yok ({needed / (1024 * 1024)} MB gerekli).";
             }
         }
         catch (Exception)
         {
             // Boş alan belirlenemedi (ör. ağ yolu): engelleme, transfere izin ver.
         }
-
         return null;
     }
 

@@ -23,6 +23,9 @@ public sealed class PartialState
     /// </summary>
     public bool AutoResume { get; set; }
 
+    /// <summary>Hedefte zaten var olduğu için yeniden adlandırılan kök öğeler ("Fotoğraflar" → "Fotoğraflar (2)").</summary>
+    public Dictionary<string, string> RootRenames { get; set; } = new();
+
     /// <summary>
     /// Göreli yol → (parça indeksi → o parçanın xxHash3'ü). Resume'da diskteki baytlar bu hash'le
     /// yeniden doğrulanır; yerelde bozulmuş bir parça sessizce kabul edilmez.

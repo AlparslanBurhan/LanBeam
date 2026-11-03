@@ -103,7 +103,8 @@ public static class FileTreeScanner
     {
         if (string.IsNullOrWhiteSpace(relativePath))
             throw new InvalidDataException("Boş göreli yol.");
-        if (relativePath.Contains("..") || Path.IsPathRooted(relativePath) || relativePath.Contains(':'))
+        // ".." bileşeni aşağıdaki bileşen denetiminde reddedilir; "rapor..v2.pdf" gibi adlar geçerlidir.
+        if (Path.IsPathRooted(relativePath) || relativePath.Contains(':'))
             throw new InvalidDataException($"Güvensiz göreli yol reddedildi: {relativePath}");
 
         // Her yol bileşenini ayrı ayrı doğrula: ayrılmış Windows aygıt adları (CON, PRN…),
