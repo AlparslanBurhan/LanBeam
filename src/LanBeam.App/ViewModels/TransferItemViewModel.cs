@@ -17,8 +17,10 @@ public sealed class TransferItemViewModel : ObservableObject
         Handle = handle;
         _lastBytes = handle.BytesTransferred;
         CancelCommand = new RelayCommand(_ => Handle.Cancel(), _ => Handle.CanCancel);
-        PauseCommand = new RelayCommand(_ => Handle.Pause(), _ => Handle.CanPause);
-        ResumeCommand = new RelayCommand(_ => Handle.Resume(), _ => Handle.CanResume);
+        // Görünürlük CanPause/CanResume'a bağlı; canExecute WPF'te yalnızca girdiyle tazelendiğinden
+        // düğme görünür ama devre dışı kalabiliyordu. Handle izin yoksa zaten bir şey yapmaz.
+        PauseCommand = new RelayCommand(_ => Handle.Pause());
+        ResumeCommand = new RelayCommand(_ => Handle.Resume());
     }
 
     public RelayCommand CancelCommand { get; }
