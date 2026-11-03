@@ -32,7 +32,8 @@
                        TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="60" />
 
             <Grid Grid.Row="2">
-                <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Visibility="{Binding HasDevices, Converter={StaticResource InverseBoolToVis}}">
                     <ui:ProgressRing IsIndeterminate="True" Width="40" Height="40" />
                     <TextBlock Margin="0,12,0,0" Opacity="0.7" TextAlignment="Center"
                                Text="{DynamicResource Str_SearchingDevices}" />

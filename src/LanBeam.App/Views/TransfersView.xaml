@@ -23,7 +23,8 @@
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="4">
             <Grid>
-                <TextBlock x:Name="EmptyState" Margin="0,60,0,0" HorizontalAlignment="Center"
+                <TextBlock Margin="0,60,0,0" HorizontalAlignment="Center"
+                           Visibility="{Binding HasTransfers, Converter={StaticResource InverseBoolToVis}}"
                            FontSize="15" Opacity="0.6"
                            Text="{DynamicResource Str_NoTransfers}" />
 

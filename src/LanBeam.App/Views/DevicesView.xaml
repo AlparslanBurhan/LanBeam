@@ -18,7 +18,8 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="4">
             <Grid>
                 <!-- Boş durum -->
-                <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center"
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Visibility="{Binding HasDevices, Converter={StaticResource InverseBoolToVis}}"
                             Margin="0,60,0,0">
                     <ui:ProgressRing IsIndeterminate="True" Width="48" Height="48" />
                     <TextBlock Margin="0,16,0,0" FontSize="16" Opacity="0.8" TextAlignment="Center"

@@ -15,9 +15,6 @@ public partial class TransfersView : UserControl
         Loaded += (_, _) =>
         {
             DataContext = App.MainVm;
-            UpdateEmptyState();
-            App.MainVm.Transfers.CollectionChanged += (_, _) => UpdateEmptyState();
-
             _timer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background,
                 (_, _) =>
                 {
@@ -27,11 +24,6 @@ public partial class TransfersView : UserControl
             _timer.Start();
         };
         Unloaded += (_, _) => _timer?.Stop();
-    }
-
-    private void UpdateEmptyState()
-    {
-        EmptyState.Visibility = App.MainVm.Transfers.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void ClearFinished_Click(object sender, RoutedEventArgs e)
