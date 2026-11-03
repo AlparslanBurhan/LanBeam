@@ -20,14 +20,23 @@ namespace LanBeam.Ui.Views;
 public partial class SettingsView : UserControl
 {
     private bool _loading = true;
-    private bool _subscribed;
 
     private sealed record TrustedItem(string DeviceId, string Name, string FingerprintShort);
 
     public SettingsView()
     {
         InitializeComponent();
-        Loaded += (_, _) => LoadFromSettings();
+        Loaded += (_, _) =>
+        {
+            LoadFromSettings();
+            App.Node.TrustedDevices.Changed += OnTrustedChanged;
+            Loc.LanguageChanged += RefreshTexts;
+        };
+        Unloaded += (_, _) =>
+        {
+            App.Node.TrustedDevices.Changed -= OnTrustedChanged;
+            Loc.LanguageChanged -= RefreshTexts;
+        };
     }
 
 
@@ -49,18 +58,6 @@ public partial class SettingsView : UserControl
         UpdateAvatarPreview();
         RefreshTrustedList();
         RefreshTexts();
-
-        if (!_subscribed)
-        {
-            _subscribed = true;
-            App.Node.TrustedDevices.Changed += OnTrustedChanged;
-            Loc.LanguageChanged += RefreshTexts;
-            Unloaded += (_, _) =>
-            {
-                App.Node.TrustedDevices.Changed -= OnTrustedChanged;
-                Loc.LanguageChanged -= RefreshTexts;
-            };
-        }
         _loading = false;
     }
 
