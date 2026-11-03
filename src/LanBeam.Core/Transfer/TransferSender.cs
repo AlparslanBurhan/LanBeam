@@ -117,6 +117,7 @@ public sealed class TransferSender
         TransferHandle handle, CancellationToken ct, Action onAccepted)
     {
         var dataStreams = new List<SslStream>();
+        var workers = new List<Task>();
         JsonChannel? channel = null;
 
         try
@@ -201,7 +202,6 @@ public sealed class TransferSender
             var resendChannel = Channel.CreateUnbounded<List<ChunkRef>>();
 
             // Paralel veri akışları
-            var workers = new List<Task>();
             for (int i = 0; i < streamCount; i++)
             {
                 (SslStream dataStream, string dataPeerFp) = await ConnectAsync(target.Address, target.Port, ct)
@@ -301,6 +301,8 @@ public sealed class TransferSender
             {
                 try { await channel.DisposeAsync().ConfigureAwait(false); } catch (Exception) { }
             }
+            // Duraklatılınca kaynak dosyalar hemen serbest kalsın (kullanıcı taşıyabilir/düzenleyebilir).
+            try { await Task.WhenAll(workers).ConfigureAwait(false); } catch (Exception) { }
         }
     }
 

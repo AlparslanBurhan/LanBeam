@@ -13,6 +13,9 @@ internal sealed class KeepAwake : IDisposable
     private IntPtr _request;
     private Process? _caffeinate;
 
+    /// <summary>Uyku engeli şu an etkin mi?</summary>
+    public bool IsActive => _request != IntPtr.Zero || _caffeinate is not null;
+
     public void Set(bool on)
     {
         try
@@ -33,8 +36,12 @@ internal sealed class KeepAwake : IDisposable
             var reason = new ReasonContext { Version = 0, Flags = 1, SimpleReasonString = "LanBeam dosya aktarıyor" };
             IntPtr request = PowerCreateRequest(ref reason);
             if (request == new IntPtr(-1)) return;
-            PowerSetRequest(request, PowerRequestType.DisplayRequired);
-            PowerSetRequest(request, PowerRequestType.SystemRequired);
+            if (!PowerSetRequest(request, PowerRequestType.DisplayRequired) |
+                !PowerSetRequest(request, PowerRequestType.SystemRequired))
+            {
+                CloseHandle(request);
+                return;
+            }
             _request = request;
         }
         else if (OperatingSystem.IsMacOS() && _caffeinate is null)
