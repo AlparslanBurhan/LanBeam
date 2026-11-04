@@ -17,14 +17,7 @@ public partial class SendPickerWindow
 
         PathsText.Text = LanBeam.App.Localization.Loc.Format(
             "Str_ToSendFormat", string.Join(", ", paths.Select(Path.GetFileName)));
-        UpdateEmptyState();
-        App.MainVm.Devices.CollectionChanged += (_, _) => UpdateEmptyState();
         Activate();
-    }
-
-    private void UpdateEmptyState()
-    {
-        EmptyState.Visibility = App.MainVm.Devices.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => Close();

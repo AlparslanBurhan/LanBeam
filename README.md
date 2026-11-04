@@ -22,8 +22,14 @@ each other automatically; files move over an encrypted connection at gigabit spe
   remembered and verified by certificate pinning afterwards.
 - **Accept / reject + destination** — the receiver sees who wants to send what (name, size, file
   count) and chooses where to save.
-- **Resume** — an interrupted transfer restarted to the same folder skips already-completed chunks
-  (verified on disk with xxHash3).
+- **Pause / resume** — pause a send and continue later from where it stopped. If the connection
+  drops (Wi-Fi blip, the other device sleeps), the sender reconnects on its own; the receiver
+  continues into the same folder without asking again. Completed chunks are re-verified on disk
+  with xxHash3 before being skipped.
+- **Stays awake while transferring** — idle system and display sleep are blocked during an active
+  transfer (closing a laptop lid still sleeps it; that is an OS decision).
+- **No silent overwrites** — if the destination already has a file/folder with the same name, the
+  new one is saved as "name (2)".
 - **Integrity** — every chunk is verified; corrupted chunks are re-requested automatically.
 - **Right-click menu** (Windows) — right-click a file/folder → "Send with LanBeam".
 - **Runs in the tray** — keeps receiving in the background after the window is closed.
@@ -87,7 +93,7 @@ src/LanBeam.Avalonia   macOS/Linux/Windows UI — Avalonia (reuses Core), TR/EN
 | Pairing | 6-digit PIN + HMAC-SHA256 mutual proof over fingerprints + nonces, 3-attempt limit |
 | Control channel | TLS over TCP 45655 with length-prefixed JSON (offer, accept/reject, progress, cancel) |
 | Data channels | N parallel TLS connections; 16 MB chunks from one work queue; xxHash3 integrity; `RandomAccess.Write` to offset |
-| Resume | `.lanbeam-partial.json` (relative path → completed chunk hashes); chunks re-verified on disk before skipping |
+| Resume | per (sender, content) record in the app data folder: destination, renames, completed chunk hashes; chunks re-verified on disk before skipping |
 
 ## Security
 
@@ -120,7 +126,13 @@ birbirini otomatik bulur; dosyalar şifreli bağlantı üzerinden gigabit hızı
 - **Uçtan uca şifreleme** — tüm trafik TLS 1.2/1.3 içinde; donanım hızlandırmalı AES sayesinde hız kaybı yok.
 - **PIN eşleştirme (MITM koruması)** — ilk transferde alıcının ekranındaki 6 haneli kodu gönderen girer;
   eşleşen cihazlar sertifika sabitleme ile hatırlanır.
-- **Kabul/ret + konum seçimi**, **devam ettirme (resume)**, **xxHash3 bütünlük doğrulaması**.
+- **Kabul/ret + konum seçimi**, **xxHash3 bütünlük doğrulaması**.
+- **Duraklat / devam et** — gönderim duraklatılıp kaldığı yerden sürdürülebilir. Bağlantı koparsa
+  (Wi-Fi kesintisi, karşı cihaz uyudu) gönderen kendiliğinden yeniden bağlanır; alıcı tekrar sormadan
+  aynı klasöre devam eder.
+- **Transfer sürerken uyku engeli** — aktif transferde sistem ve ekran boşta uykuya geçmez
+  (dizüstünün kapağını kapatmak yine uyutur; bu işletim sistemi kararıdır).
+- **Sessiz üzerine yazma yok** — hedefte aynı adlı dosya/klasör varsa yenisi "ad (2)" olarak kaydedilir.
 - **Sağ tık menüsü (Windows)**, **tray'de arka planda çalışma**, **sürükle-bırak**, **avatarlar**, **Türkçe/İngilizce arayüz**.
 
 ### Kurulum

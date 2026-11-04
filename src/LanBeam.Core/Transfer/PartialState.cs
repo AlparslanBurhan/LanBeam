@@ -5,17 +5,36 @@ using LanBeam.Core.Protocol;
 
 namespace LanBeam.Core.Transfer;
 
+/// <summary>Hedef dosyanın kayıt anındaki boyutu ve son yazılma zamanı.</summary>
+public sealed record FileStamp(long Length, long Modified)
+{
+    public static FileStamp? Of(string path)
+    {
+        var info = new FileInfo(path);
+        return info.Exists ? new FileStamp(info.Length, info.LastWriteTimeUtc.Ticks) : null;
+    }
+}
+
 /// <summary>
-/// Yarım kalan transferin durumu. Hedef klasörde ".lanbeam-partial.json" olarak saklanır;
-/// aynı içerik (imza eşleşmesi) aynı hedefe yeniden gönderilirse tamamlanan parçalar atlanır.
-/// Parçalar dosya kimliğiyle değil göreli yolla anahtarlanır — gönderen yeniden taradığında
-/// dosya kimlikleri değişebilir.
+/// Yarım kalan bir alımın durumu. Uygulama veri klasöründe, (gönderen parmak izi + içerik imzası)
+/// başına bir dosya olarak saklanır: aynı gönderen aynı içeriği yeniden gönderirse tamamlanan
+/// parçalar atlanır. Parçalar dosya kimliğiyle değil göreli yolla anahtarlanır — gönderen
+/// yeniden taradığında dosya kimlikleri değişebilir.
 /// </summary>
 public sealed class PartialState
 {
-    public const string FileName = ".lanbeam-partial.json";
-
     public string Signature { get; set; } = "";
+    public string SenderFingerprint { get; set; } = "";
+    public string DestinationRoot { get; set; } = "";
+
+    /// <summary>
+    /// true: bağlantı koptu ya da gönderen duraklattı — aynı içerik geldiğinde sormadan bu klasöre
+    /// devam edilir. false: kullanıcı iptal etti — yeniden sorulur, aynı klasör seçilirse devam edilir.
+    /// </summary>
+    public bool AutoResume { get; set; }
+
+    /// <summary>Hedefte zaten var olduğu için yeniden adlandırılan kök öğeler ("Fotoğraflar" → "Fotoğraflar (2)").</summary>
+    public Dictionary<string, string> RootRenames { get; set; } = new();
 
     /// <summary>
     /// Göreli yol → (parça indeksi → o parçanın xxHash3'ü). Resume'da diskteki baytlar bu hash'le
@@ -23,23 +42,30 @@ public sealed class PartialState
     /// </summary>
     public Dictionary<string, Dictionary<int, ulong>> CompletedChunkHashesByPath { get; set; } = new();
 
-    /// <summary>İçeriğin kimliği: sıralı (yol|boyut) listesinin SHA-256'sı.</summary>
+    /// <summary>
+    /// Göreli yol → kayıt anındaki hedef dosya damgası. Damga değişmediyse parçalar yeniden okunmaz
+    /// (büyük transferde devam dakikalar sürmesin); değiştiyse her parça hash'iyle doğrulanır.
+    /// </summary>
+    public Dictionary<string, FileStamp> Stamps { get; set; } = new();
+
+    /// <summary>İçeriğin kimliği: sıralı (yol|boyut|değişme zamanı) listesinin SHA-256'sı.</summary>
     public static string ComputeSignature(IEnumerable<FileEntry> files)
     {
         var sb = new StringBuilder();
         foreach (FileEntry f in files.OrderBy(f => f.RelativePath, StringComparer.Ordinal))
-            sb.Append(f.RelativePath).Append('|').Append(f.Size).Append('\n');
+            sb.Append(f.RelativePath).Append('|').Append(f.Size).Append('|').Append(f.Modified).Append('\n');
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sb.ToString())));
     }
 
-    public static PartialState? TryLoad(string destinationRoot, string expectedSignature)
+    public static string PathFor(string directory, string senderFingerprint, string signature) =>
+        Path.Combine(directory, Convert.ToHexString(SHA256.HashData(
+            Encoding.UTF8.GetBytes(senderFingerprint.ToUpperInvariant() + "|" + signature)))[..32] + ".json");
+
+    public static PartialState? TryLoad(string path)
     {
-        string path = Path.Combine(destinationRoot, FileName);
         try
         {
-            if (!File.Exists(path)) return null;
-            var state = JsonSerializer.Deserialize<PartialState>(File.ReadAllText(path));
-            return state?.Signature == expectedSignature ? state : null;
+            return File.Exists(path) ? JsonSerializer.Deserialize<PartialState>(File.ReadAllText(path)) : null;
         }
         catch (Exception)
         {
@@ -47,17 +73,17 @@ public sealed class PartialState
         }
     }
 
-    public void Save(string destinationRoot)
+    public void Save(string path)
     {
-        string path = Path.Combine(destinationRoot, FileName);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         string tmp = path + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(this));
         File.Move(tmp, path, overwrite: true);
     }
 
-    public static void Delete(string destinationRoot)
+    public static void Delete(string path)
     {
-        try { File.Delete(Path.Combine(destinationRoot, FileName)); }
+        try { File.Delete(path); }
         catch (Exception) { }
     }
 }

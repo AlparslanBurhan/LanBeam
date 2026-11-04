@@ -27,6 +27,8 @@ public static class AppFlows
     {
         if (paths.Count == 0) return;
         App.Node.Send(device, paths, new UiSendInteraction());
+        // Sağ tıkla gönderimde pencere gizli: ilerleme ve Duraklat düğmesi görünsün.
+        App.Instance.ShowMainWindow();
         App.Instance.MainWindowInstance?.ShowTransfers();
     }
 

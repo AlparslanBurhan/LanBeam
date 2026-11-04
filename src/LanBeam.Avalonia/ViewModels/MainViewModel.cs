@@ -83,7 +83,14 @@ public sealed class MainViewModel : ObservableObject
         item?.ApplyAvatar(_avatars.TryGet(item.Device.AvatarTag));
     }
 
-    private void AddTransfer(TransferHandle handle) => Transfers.Insert(0, new TransferItemViewModel(handle));
+    /// <summary>Alıcıda yeniden bağlanan oturum, yarım kalan eski kaydın yerine geçer.</summary>
+    private void AddTransfer(TransferHandle handle)
+    {
+        if (Transfers.FirstOrDefault(t => handle.ContentKey is not null &&
+                t.Handle.ContentKey == handle.ContentKey && !t.Handle.CanCancel) is { } stale)
+            Transfers.Remove(stale);
+        Transfers.Insert(0, new TransferItemViewModel(handle));
+    }
 
     private void RefreshTrust()
     {

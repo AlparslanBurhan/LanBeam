@@ -38,6 +38,12 @@
     <s:String x:Key="Str_StateRejected">Reddedildi</s:String>
     <s:String x:Key="Str_StateCancelled">İptal edildi</s:String>
     <s:String x:Key="Str_StateFailedFormat">Hata: {0}</s:String>
+    <s:String x:Key="Str_Pause">Duraklat</s:String>
+    <s:String x:Key="Str_Resume">Devam et</s:String>
+    <s:String x:Key="Str_StateReconnectingFormat">Bağlantı koptu, yeniden bağlanılıyor… ({0})</s:String>
+    <s:String x:Key="Str_StatePaused">Duraklatıldı</s:String>
+    <s:String x:Key="Str_StatePausedFormat">Duraklatıldı: {0}</s:String>
+    <s:String x:Key="Str_StatePeerPaused">Gönderen duraklattı; devam edince kaldığı yerden sürer</s:String>
     <s:String x:Key="Str_Unknown">bilinmiyor</s:String>
 
     <!-- Ayarlar -->

@@ -35,7 +35,7 @@ public static class FileTreeScanner
             if (File.Exists(path))
             {
                 var info = new FileInfo(path);
-                files.Add(new FileEntry(nextId, info.Name, info.Length));
+                files.Add(new FileEntry(nextId, info.Name, info.Length, info.LastWriteTimeUtc.Ticks));
                 localPaths[nextId] = path;
                 nextId++;
             }
@@ -72,7 +72,7 @@ public static class FileTreeScanner
         {
             any = true;
             var info = new FileInfo(file);
-            files.Add(new FileEntry(nextId, $"{relativePrefix}/{info.Name}", info.Length));
+            files.Add(new FileEntry(nextId, $"{relativePrefix}/{info.Name}", info.Length, info.LastWriteTimeUtc.Ticks));
             localPaths[nextId] = file;
             nextId++;
         }
@@ -103,7 +103,8 @@ public static class FileTreeScanner
     {
         if (string.IsNullOrWhiteSpace(relativePath))
             throw new InvalidDataException("Boş göreli yol.");
-        if (relativePath.Contains("..") || Path.IsPathRooted(relativePath) || relativePath.Contains(':'))
+        // ".." bileşeni aşağıdaki bileşen denetiminde reddedilir; "rapor..v2.pdf" gibi adlar geçerlidir.
+        if (Path.IsPathRooted(relativePath) || relativePath.Contains(':'))
             throw new InvalidDataException($"Güvensiz göreli yol reddedildi: {relativePath}");
 
         // Her yol bileşenini ayrı ayrı doğrula: ayrılmış Windows aygıt adları (CON, PRN…),

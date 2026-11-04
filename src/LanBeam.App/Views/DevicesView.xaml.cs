@@ -14,8 +14,6 @@ public partial class DevicesView : UserControl
         {
             DataContext = App.MainVm;
             UpdateSelfInfo();
-            UpdateEmptyState();
-            App.MainVm.Devices.CollectionChanged += (_, _) => UpdateEmptyState();
             LanBeam.App.Localization.Loc.LanguageChanged += UpdateSelfInfo;
         };
         Unloaded += (_, _) => LanBeam.App.Localization.Loc.LanguageChanged -= UpdateSelfInfo;
@@ -25,11 +23,6 @@ public partial class DevicesView : UserControl
     {
         SelfInfoText.Text = LanBeam.App.Localization.Loc.Format(
             "Str_ThisDeviceFormat", App.Node.Settings.Current.DeviceName);
-    }
-
-    private void UpdateEmptyState()
-    {
-        EmptyState.Visibility = App.MainVm.Devices.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private static DeviceItemViewModel? DeviceOf(object sender) =>

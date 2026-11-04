@@ -38,6 +38,12 @@
     <s:String x:Key="Str_StateRejected">Rejected</s:String>
     <s:String x:Key="Str_StateCancelled">Cancelled</s:String>
     <s:String x:Key="Str_StateFailedFormat">Error: {0}</s:String>
+    <s:String x:Key="Str_Pause">Pause</s:String>
+    <s:String x:Key="Str_Resume">Resume</s:String>
+    <s:String x:Key="Str_StateReconnectingFormat">Connection lost, reconnecting… ({0})</s:String>
+    <s:String x:Key="Str_StatePaused">Paused</s:String>
+    <s:String x:Key="Str_StatePausedFormat">Paused: {0}</s:String>
+    <s:String x:Key="Str_StatePeerPaused">Paused by sender; continues where it left off</s:String>
     <s:String x:Key="Str_Unknown">unknown</s:String>
 
     <!-- Settings -->

@@ -15,9 +15,6 @@ public partial class TransfersView : UserControl
         Loaded += (_, _) =>
         {
             DataContext = App.MainVm;
-            UpdateEmptyState();
-            App.MainVm.Transfers.CollectionChanged += (_, _) => UpdateEmptyState();
-
             _timer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background,
                 (_, _) =>
                 {
@@ -29,15 +26,10 @@ public partial class TransfersView : UserControl
         Unloaded += (_, _) => _timer?.Stop();
     }
 
-    private void UpdateEmptyState()
-    {
-        EmptyState.Visibility = App.MainVm.Transfers.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-    }
-
     private void ClearFinished_Click(object sender, RoutedEventArgs e)
     {
         // Aktif transferlere dokunma; yalnızca bitenleri kaldır.
-        var finished = App.MainVm.Transfers.Where(t => t.Handle.IsFinished).ToList();
+        var finished = App.MainVm.Transfers.Where(t => !t.Handle.CanCancel).ToList();
         foreach (var item in finished)
             App.MainVm.Transfers.Remove(item);
     }
@@ -45,7 +37,7 @@ public partial class TransfersView : UserControl
     private void RemoveItem_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is TransferItemViewModel item &&
-            item.Handle.IsFinished)
+            !item.Handle.CanCancel)
         {
             App.MainVm.Transfers.Remove(item);
         }

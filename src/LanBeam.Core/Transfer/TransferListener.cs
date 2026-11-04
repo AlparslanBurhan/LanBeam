@@ -20,6 +20,7 @@ public sealed class TransferListener : IDisposable
     private readonly string _deviceId;
     private readonly Func<string> _deviceName;
     private readonly Func<int> _defaultStreamCount;
+    private readonly string _partialsDirectory;
 
     /// <summary>Kendi avatarımız: (etiket, özel fotoğraf PNG'si ya da null). UI/Node tarafından atanır.</summary>
     public Func<(string Tag, byte[]? Png)>? AvatarProvider { get; set; }
@@ -45,8 +46,10 @@ public sealed class TransferListener : IDisposable
     public event Action<TransferHandle>? TransferStarted;
 
     public TransferListener(X509Certificate2 certificate, string ownFingerprint,
-        TrustedDeviceStore trust, string deviceId, Func<string> deviceName, Func<int> defaultStreamCount)
+        TrustedDeviceStore trust, string deviceId, Func<string> deviceName, Func<int> defaultStreamCount,
+        string partialsDirectory)
     {
+        _partialsDirectory = partialsDirectory;
         _certificate = certificate;
         _ownFingerprint = ownFingerprint;
         _trust = trust;
@@ -306,41 +309,57 @@ public sealed class TransferListener : IDisposable
     private async Task HandleOfferAsync(JsonChannel channel, HelloMessage hello, string peerFp,
         TransferOffer offer, CancellationToken ct)
     {
-        var incoming = new IncomingOffer
-        {
-            Offer = offer,
-            SenderName = hello.DeviceName,
-            SenderDeviceId = hello.DeviceId,
-            SenderFingerprint = peerFp,
-        };
-        OfferReceived?.Invoke(incoming);
+        string partialPath = PartialState.PathFor(_partialsDirectory, peerFp, PartialState.ComputeSignature(offer.Files));
 
-        // Kullanıcı karar verirken gönderenin vazgeçmesini de dinle.
+        // Gönderen yeniden bağlandıysa eski oturum ölü soketi bekliyor olabilir: kapat, dosyaları bıraksın.
+        foreach (ReceiveSession old in _sessions.Values.Where(s => s.PartialPath == partialPath).ToList())
+        {
+            old.Fail("Bağlantı koptu.");
+            await old.Closed.WaitAsync(TimeSpan.FromSeconds(10), ct).ConfigureAwait(false);
+        }
+
+        // Gönderenin vazgeçmesini de dinle (okuyucu tek olmalı; oturum bu okumadan devam eder).
         Task<ReceivedMessage?> readTask = channel.ReceiveAsync(ct);
-        Task<string?> decisionTask = incoming.Decision;
+        string? destination;
 
-        Task first = await Task.WhenAny(decisionTask, readTask).ConfigureAwait(false);
-        if (first == readTask)
+        if (PartialState.TryLoad(partialPath) is { AutoResume: true } previous &&
+            Directory.Exists(previous.DestinationRoot))
         {
-            // EOF ya da cancel: gönderen vazgeçti.
-            incoming.MarkRevoked();
-            return;
+            // Kopan/duraklatılan bu içeriği kullanıcı bu klasöre zaten kabul etmişti: sormadan devam.
+            destination = previous.DestinationRoot;
+        }
+        else
+        {
+            var incoming = new IncomingOffer
+            {
+                Offer = offer,
+                SenderName = hello.DeviceName,
+                SenderDeviceId = hello.DeviceId,
+                SenderFingerprint = peerFp,
+            };
+            OfferReceived?.Invoke(incoming);
+
+            Task first = await Task.WhenAny(incoming.Decision, readTask).ConfigureAwait(false);
+            if (first == readTask)
+            {
+                // EOF ya da cancel: gönderen vazgeçti.
+                incoming.MarkRevoked();
+                return;
+            }
+
+            destination = await incoming.Decision.ConfigureAwait(false);
+            if (destination is null)
+            {
+                await channel.SendAsync(MessageTypes.Reject,
+                    new RejectMessage("Alıcı transferi reddetti."), ct).ConfigureAwait(false);
+                return;
+            }
         }
 
-        string? destination = await decisionTask.ConfigureAwait(false);
-        if (destination is null)
+        // Kötü niyetli/hatalı teklif doğrulaması: yinelenen fileId, negatif boyut, güvensiz yol.
+        if (ValidateOffer(offer, destination) is { } invalid)
         {
-            await channel.SendAsync(MessageTypes.Reject,
-                new RejectMessage("Alıcı transferi reddetti."), ct).ConfigureAwait(false);
-            return;
-        }
-
-        // Kötü niyetli/hatalı teklif doğrulaması: yinelenen fileId, negatif boyut, disk boş alanı.
-        string? validationError = ValidateOffer(offer, destination);
-        if (validationError is not null)
-        {
-            await channel.SendAsync(MessageTypes.Reject, new RejectMessage(validationError), ct)
-                .ConfigureAwait(false);
+            await channel.SendAsync(MessageTypes.Reject, new RejectMessage(invalid), ct).ConfigureAwait(false);
             return;
         }
 
@@ -349,10 +368,16 @@ public sealed class TransferListener : IDisposable
             Direction = TransferDirection.Receive,
             DisplayName = offer.DisplayName,
             PeerName = hello.DeviceName,
+            ContentKey = partialPath,
         };
 
         int streamCount = Math.Clamp(_defaultStreamCount(), 1, 8);
-        using var session = new ReceiveSession(offer, destination, peerFp, streamCount, handle);
+        using var session = new ReceiveSession(offer, destination, peerFp, streamCount, handle, partialPath);
+        if (CheckFreeSpace(destination, session.BytesNeededOnDisk) is { } noSpace)
+        {
+            await channel.SendAsync(MessageTypes.Reject, new RejectMessage(noSpace), ct).ConfigureAwait(false);
+            return;
+        }
         if (!_sessions.TryAdd(session.SessionId, session))
             throw new InvalidOperationException("Oturum kimliği çakışması.");
 
@@ -365,6 +390,7 @@ public sealed class TransferListener : IDisposable
 
             handle.SetState(TransferState.Transferring);
             TransferStarted?.Invoke(handle);
+            session.SavePartial(); // ilk parçadan önce kopsa da hedef klasör ve ad eşlemesi hatırlansın
 
             await channel.SendAsync(MessageTypes.Accept, new AcceptMessage(
                 session.SessionId, session.DataToken, streamCount,
@@ -387,7 +413,12 @@ public sealed class TransferListener : IDisposable
                         await channel.SendAsync(MessageTypes.Progress,
                             new ProgressMessage(handle.BytesTransferred), sessionCts.Token).ConfigureAwait(false);
                     }
-                    catch (Exception) { break; }
+                    catch (Exception)
+                    {
+                        // Gönderen uyudu/koptu: veri okuması TCP zaman aşımını beklemesin.
+                        if (!sessionCts.Token.IsCancellationRequested) session.Fail("Bağlantı koptu.");
+                        break;
+                    }
 
                     handle.NotifyProgress();
                     if (++tick % 6 == 0)
@@ -395,8 +426,8 @@ public sealed class TransferListener : IDisposable
                 }
             });
 
-            // Gönderenden gelen mesajları dinle (iptal/hata) — okuyucu tek olmalı,
-            // bekleyen readTask'ten devam et.
+            // Gönderenden gelen mesajları dinle (iptal/duraklatma/hata), bekleyen readTask'ten devam et.
+            TransferState endState = TransferState.Failed;
             Task controlLoop = Task.Run(async () =>
             {
                 Task<ReceivedMessage?> pending = readTask;
@@ -404,11 +435,25 @@ public sealed class TransferListener : IDisposable
                 {
                     ReceivedMessage? msg;
                     try { msg = await pending.ConfigureAwait(false); }
-                    catch (Exception) { session.Fail("Bağlantı koptu."); break; }
+                    catch (Exception) { session.Fail("Bağlantı koptu."); return; }
 
-                    if (msg is null) { session.Fail("Bağlantı koptu."); break; }
-                    if (msg.Type == MessageTypes.Cancel) { session.Fail("Gönderen transferi iptal etti."); break; }
-                    if (msg.Type == MessageTypes.Error) { session.Fail(msg.As<ErrorMessage>().Message); break; }
+                    switch (msg?.Type)
+                    {
+                        case null:
+                            session.Fail("Bağlantı koptu.");
+                            return;
+                        case MessageTypes.Pause:
+                            endState = TransferState.Paused;
+                            session.Fail("Gönderen duraklattı.");
+                            return;
+                        case MessageTypes.Cancel:
+                            endState = TransferState.Cancelled;
+                            session.Fail("Gönderen transferi iptal etti.", autoResume: false);
+                            return;
+                        case MessageTypes.Error:
+                            session.Fail(msg.As<ErrorMessage>().Message);
+                            return;
+                    }
 
                     pending = channel.ReceiveAsync(sessionCts.Token);
                 }
@@ -420,7 +465,7 @@ public sealed class TransferListener : IDisposable
 
             if (finished == cancelledTask && handle.CancellationToken.IsCancellationRequested)
             {
-                session.SavePartial();
+                session.Fail("Transfer iptal edildi.", autoResume: false);
                 try
                 {
                     using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
@@ -438,11 +483,24 @@ public sealed class TransferListener : IDisposable
                     new ProgressMessage(handle.BytesTransferred), ct).ConfigureAwait(false);
                 await channel.SendAsync(MessageTypes.Complete, ct).ConfigureAwait(false);
                 handle.SetState(TransferState.Completed);
+                return;
             }
-            else
+
+            // Gönderen duraklatınca/iptal edince veri akışı kontrol mesajından önce kopabilir:
+            // nedeni doğru göstermek için o mesajı kısa süre bekle.
+            await Task.WhenAny(controlLoop, Task.Delay(1000)).ConfigureAwait(false);
+            if (endState == TransferState.Failed)
             {
-                handle.SetState(TransferState.Failed, failure);
+                // Yerel hata (ör. disk dolu) ise gönderen boşuna yeniden denemesin, nedeni görsün.
+                try
+                {
+                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                    await channel.SendAsync(MessageTypes.Error, new ErrorMessage(failure), timeout.Token)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception) { }
             }
+            handle.SetState(endState, failure);
         }
         finally
         {
@@ -463,7 +521,23 @@ public sealed class TransferListener : IDisposable
         if (offer.Files.Select(f => f.Id).Distinct().Count() != offer.Files.Count)
             return "Teklifte yinelenen dosya kimliği var.";
 
-        // Hedef diskte yeterli boş alan var mı? (Devasa boyut bildirip diski doldurmayı engeller.)
+        // Yol hatası transfer ortasında değil, baştan anlaşılır bir nedenle reddedilsin.
+        try
+        {
+            foreach (string path in offer.Files.Select(f => f.RelativePath).Concat(offer.EmptyDirectories))
+                FileTreeScanner.ResolveDestinationPath(destination, path);
+        }
+        catch (InvalidDataException ex)
+        {
+            return ex.Message;
+        }
+
+        return null;
+    }
+
+    /// <summary>Hedef diskte yeterli boş alan var mı? (Devasa boyut bildirip diski doldurmayı engeller.)</summary>
+    private static string? CheckFreeSpace(string destination, long needed)
+    {
         try
         {
             string? root = Path.GetPathRoot(Path.GetFullPath(destination));
@@ -471,15 +545,14 @@ public sealed class TransferListener : IDisposable
             {
                 long free = new DriveInfo(root).AvailableFreeSpace;
                 // %2 pay bırak.
-                if (offer.TotalBytes > free - free / 50)
-                    return $"Hedef diskte yeterli alan yok ({offer.TotalBytes / (1024 * 1024)} MB gerekli).";
+                if (needed > free - free / 50)
+                    return $"Hedef diskte yeterli alan yok ({needed / (1024 * 1024)} MB gerekli).";
             }
         }
         catch (Exception)
         {
             // Boş alan belirlenemedi (ör. ağ yolu): engelleme, transfere izin ver.
         }
-
         return null;
     }
 
