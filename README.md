@@ -106,7 +106,7 @@ Suitable for trusted home/office LANs. As with any peer-to-peer app, use it on n
 ## Roadmap / not yet
 
 - Windows 11 top-level right-click menu (MSIX + IExplorerCommand)
-- macOS / Linux (the core is already UI-agnostic)
+- Linux packages (the Avalonia UI already runs there)
 - Optional LZ4 compression
 
 ---
